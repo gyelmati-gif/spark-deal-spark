@@ -768,11 +768,9 @@ function LineItemRow({
               />
               <span className="text-[11px] text-muted-foreground">{item.unit}</span>
               {!isCustom && CATALOG[itemId]?.serial && (
-                <input
+                <SerialScanner
                   value={state?.serial ?? ""}
-                  onChange={(e) => setSerial(room.id, groupId, itemId, e.target.value)}
-                  placeholder="Serial #"
-                  className="flex-1 min-w-0 px-2 py-1 rounded border text-xs tabular-nums"
+                  onChange={(v) => setSerial(room.id, groupId, itemId, v)}
                 />
               )}
             </div>
