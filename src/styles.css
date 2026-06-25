@@ -185,6 +185,23 @@
 @utility hero-surface {
   background-image: linear-gradient(160deg, oklch(1 0 0) 0%, oklch(0.97 0.015 255) 55%, oklch(0.94 0.03 260) 100%);
 }
+@utility card-surface {
+  background-image: var(--grad-card);
+}
+@utility grad-navy {
+  background-image: var(--grad-navy);
+}
+@utility shadow-float {
+  box-shadow: var(--shadow-float);
+}
+@utility hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  &:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift); }
+}
+@utility press {
+  transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+  &:active { transform: scale(0.96); }
+}
 @utility deal-glow {
   box-shadow:
     0 10px 30px -10px oklch(0.45 0.2 264 / 0.55),
@@ -230,6 +247,32 @@
 }
 @utility animate-glow-pulse {
   animation: spark-glow-pulse 3.6s ease-in-out infinite;
+}
+@keyframes spark-splash-pulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0 oklch(0.78 0.16 70 / 0)); }
+  50% { transform: scale(1.06); filter: drop-shadow(0 0 24px oklch(0.78 0.16 70 / 0.55)); }
+}
+@keyframes spark-splash-ring {
+  0% { transform: scale(0.85); opacity: 0.7; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+@keyframes spark-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@utility animate-splash-pulse {
+  animation: spark-splash-pulse 1.8s ease-in-out infinite;
+}
+@utility animate-splash-ring {
+  animation: spark-splash-ring 1.8s ease-out infinite;
+}
+@utility shimmer-text {
+  background: linear-gradient(90deg, oklch(0.7 0.05 255) 0%, oklch(0.4 0.1 258) 50%, oklch(0.7 0.05 255) 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: spark-shimmer 2.2s linear infinite;
 }
 @utility verdict-strong {
   background: linear-gradient(135deg, oklch(0.6 0.16 150), oklch(0.5 0.18 155));
