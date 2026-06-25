@@ -799,7 +799,7 @@ function GroupCard({
     (groupState?.customItems.length ?? 0);
   return (
     <div
-      className={`rounded-2xl border bg-card shadow-card overflow-hidden ${
+      className={`rounded-2xl border border-border/70 card-surface shadow-card hover-lift overflow-hidden ${
         rollup.reviewed ? "border-primary/50" : ""
       }`}
     >
@@ -1217,7 +1217,7 @@ function DealTab({ project }: { project: Project }) {
 
       {/* Margin gauge */}
       {d.purchasePrice > 0 && d.arv > 0 && (
-        <section className="rounded-2xl border bg-card shadow-card p-4">
+        <section className="rounded-2xl border border-border/70 card-surface shadow-card hover-lift p-4">
           <div className="flex items-baseline justify-between mb-2">
             <div className="text-[10px] tracking-[0.18em] text-muted-foreground font-semibold">
               MARGIN VS TARGET
@@ -1252,7 +1252,7 @@ function DealTab({ project }: { project: Project }) {
         </section>
       )}
 
-      <section className="rounded-2xl border bg-card shadow-card p-4 space-y-4">
+      <section className="rounded-2xl border border-border/70 card-surface shadow-card hover-lift p-4 space-y-4">
         <DealInput
           label="After Repair Value (ARV)"
           value={d.arv}
@@ -1281,7 +1281,7 @@ function DealTab({ project }: { project: Project }) {
 
       {/* Visual equation */}
       {d.arv > 0 && (
-        <section className="rounded-2xl border bg-card shadow-card p-4">
+        <section className="rounded-2xl border border-border/70 card-surface shadow-card hover-lift p-4">
           <div className="text-[10px] tracking-[0.18em] text-muted-foreground font-semibold mb-3">
             THE EQUATION
           </div>
@@ -1307,7 +1307,7 @@ function DealTab({ project }: { project: Project }) {
         </section>
       )}
 
-      <section className="rounded-2xl border bg-card shadow-card p-4">
+      <section className="rounded-2xl border border-border/70 card-surface shadow-card hover-lift p-4">
         <div className="text-[10px] tracking-[0.18em] text-muted-foreground font-semibold mb-2">
           BREAKDOWN
         </div>
@@ -1459,7 +1459,7 @@ function ExportTab({ project }: { project: Project }) {
   return (
     <div className="space-y-4">
       <h2 className="text-3xl font-black text-navy tracking-tight">Export</h2>
-      <section className="rounded-2xl border bg-card shadow-card p-4">
+      <section className="rounded-2xl border border-border/70 card-surface shadow-card hover-lift p-4">
         <div className="text-[10px] tracking-[0.18em] text-muted-foreground font-semibold">
           SUMMARY
         </div>
@@ -1478,7 +1478,7 @@ function ExportTab({ project }: { project: Project }) {
           Includes a styled .xlsx breakdown, all photos, and a plain-text summary.
         </p>
       </section>
-      <section className="rounded-2xl border bg-card shadow-card p-4">
+      <section className="rounded-2xl border border-border/70 card-surface shadow-card hover-lift p-4">
         <div className="text-[10px] tracking-[0.18em] text-muted-foreground font-semibold mb-2">
           ROOMS
         </div>
@@ -1540,7 +1540,7 @@ function ExportSheet({
               <button onClick={onClose} className="p-1 text-muted-foreground"><X className="h-5 w-5" /></button>
             </div>
             <p className="text-xs text-muted-foreground mb-4">Here's what will be in your ZIP:</p>
-            <div className="rounded-2xl border bg-card shadow-card p-4 space-y-2">
+            <div className="rounded-2xl border border-border/70 card-surface shadow-card hover-lift p-4 space-y-2">
               <PreviewRow k="Property" v={project.address || project.name} />
               <PreviewRow k="Repair total" v={fmtMoney(total)} highlight />
               <PreviewRow k="Line items" v={`${lineItemCount}`} />
@@ -1998,7 +1998,7 @@ function ReviewTab({ project }: { project: Project }) {
       {rollups
         .filter((r) => r.lines.length > 0 || r.noAction)
         .map((r) => (
-          <div key={r.roomId + r.groupId} className="rounded-2xl border bg-card shadow-card p-4">
+          <div key={r.roomId + r.groupId} className="rounded-2xl border border-border/70 card-surface shadow-card hover-lift p-4">
             <div className="flex justify-between items-baseline mb-2">
               <div>
                 <div className="text-[10px] tracking-[0.18em] text-muted-foreground font-semibold">
