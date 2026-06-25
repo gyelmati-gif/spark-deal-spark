@@ -33,6 +33,8 @@ import {
   AlertTriangle,
   Loader2,
   ChevronLeft,
+  Zap,
+  PartyPopper,
 } from "lucide-react";
 import {
   DndContext,
