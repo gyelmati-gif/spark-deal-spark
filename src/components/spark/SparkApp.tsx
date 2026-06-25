@@ -284,6 +284,14 @@ function EstimateTab({ project, onGoDeal }: { project: Project; onGoDeal: () => 
     [project, globals],
   );
   const deal = useMemo(() => computeDeal(total, project.deal), [total, project.deal]);
+  const animatedTotal = useCountUp(total);
+  const dealValue =
+    project.deal.arv > 0
+      ? project.deal.purchasePrice > 0
+        ? deal.profit ?? 0
+        : Math.max(0, deal.mao)
+      : 0;
+  const animatedDeal = useCountUp(dealValue);
   const [activeRoomId, setActiveRoomId] = useState<string>(project.rooms[0]?.id ?? "");
   useEffect(() => {
     if (!project.rooms.find((r) => r.id === activeRoomId))
@@ -298,12 +306,17 @@ function EstimateTab({ project, onGoDeal }: { project: Project; onGoDeal: () => 
   return (
     <div className="space-y-5">
       {/* Hero */}
-      <section className="rounded-2xl bg-card shadow-card border p-5">
+      <section className="rounded-2xl hero-surface shadow-lift border border-border/60 p-5 relative overflow-hidden">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-20 -right-20 h-48 w-48 rounded-full blur-3xl opacity-40"
+          style={{ background: "radial-gradient(circle, var(--amber), transparent 70%)" }}
+        />
         <div className="text-[10px] tracking-[0.22em] font-semibold text-muted-foreground">
           REPAIR ESTIMATE
         </div>
-        <div className="grad-hero-text text-5xl font-black tracking-tight tabular-nums mt-1">
-          {fmtMoney(total)}
+        <div className="grad-hero-number text-6xl sm:text-7xl font-black tracking-tighter tabular-nums mt-1 leading-none drop-shadow-sm">
+          {fmtMoney(animatedTotal)}
         </div>
         <div className="mt-2 flex items-center gap-2">
           {editAddr ? (
@@ -344,11 +357,14 @@ function EstimateTab({ project, onGoDeal }: { project: Project; onGoDeal: () => 
               {reviewed}/{totalGroups}
             </span>
           </div>
-          <div className="h-2 rounded-full bg-secondary overflow-hidden">
+          <div className="relative h-5 rounded-full bg-secondary overflow-hidden ring-1 ring-border/60">
             <div
-              className="h-full bg-primary rounded-full transition-all duration-300"
+              className="h-full grad-hero rounded-full transition-all duration-500 ease-out"
               style={{ width: `${pct}%` }}
             />
+            <div className="absolute inset-0 flex items-center justify-center text-[11px] font-bold tabular-nums text-foreground/90 mix-blend-luminosity">
+              {pct}%
+            </div>
           </div>
         </div>
 
@@ -361,18 +377,22 @@ function EstimateTab({ project, onGoDeal }: { project: Project; onGoDeal: () => 
         {/* Deal chip */}
         <button
           onClick={onGoDeal}
-          className="mt-4 w-full grad-hero text-navy-foreground rounded-xl p-3 flex items-center justify-between text-left shadow-lift"
+          className="mt-4 w-full grad-hero text-navy-foreground rounded-2xl p-4 flex items-center justify-between text-left deal-glow relative overflow-hidden transition-transform active:scale-[0.99]"
         >
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 opacity-30"
+            style={{
+              background:
+                "radial-gradient(120% 80% at 100% 0%, var(--amber), transparent 55%)",
+            }}
+          />
           <div>
-            <div className="text-[10px] tracking-[0.18em] font-semibold opacity-80">
+            <div className="text-[11px] tracking-[0.22em] font-semibold opacity-85">
               {project.deal.purchasePrice > 0 ? "PROJECTED PROFIT" : "MAX ALLOWABLE OFFER"}
             </div>
-            <div className="text-2xl font-bold tabular-nums">
-              {project.deal.arv > 0
-                ? project.deal.purchasePrice > 0
-                  ? fmtMoney(deal.profit ?? 0)
-                  : fmtMoney(Math.max(0, deal.mao))
-                : "Set ARV"}
+            <div className="text-3xl font-black tabular-nums tracking-tight mt-0.5">
+              {project.deal.arv > 0 ? fmtMoney(animatedDeal) : "Set ARV"}
             </div>
           </div>
           <VerdictBadge verdict={deal.verdict} label={deal.verdictLabel} />
