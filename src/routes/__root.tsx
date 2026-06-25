@@ -77,7 +77,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-      { title: "Spark Estimator — Mobile Repair Cost Estimator" },
+      { title: "Spark Estimator — Spark Homes" },
       { name: "description", content: "Mobile-first repair cost estimator for the Spark Homes acquisition team. Walk a property, get the repair total, the MAO, and a go/no-go verdict before you leave the driveway." },
       { name: "author", content: "Spark Homes" },
       { name: "theme-color", content: "#1E3A5F" },
