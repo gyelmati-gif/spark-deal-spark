@@ -527,11 +527,14 @@ function EstimateTab({ project, onGoDeal }: { project: Project; onGoDeal: () => 
         rooms={project.rooms}
         activeId={activeRoomId}
         onChange={setActiveRoomId}
+        rollups={rollups}
       />
 
       {/* Groups for active room */}
       {activeRoom && (
-        <RoomGroups room={activeRoom} project={project} rollups={rollups} />
+        <div key={activeRoom.id} className="animate-fade-in">
+          <RoomGroups room={activeRoom} project={project} rollups={rollups} />
+        </div>
       )}
     </div>
   );
