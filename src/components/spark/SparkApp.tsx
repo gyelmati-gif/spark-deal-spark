@@ -117,7 +117,7 @@ function WelcomeFlow() {
             >
               <ChevronLeft className="h-4 w-4" /> Back
             </button>
-            <h2 className="text-2xl font-bold text-navy">What's the property address?</h2>
+            <h2 className="text-3xl font-black text-navy tracking-tight">What's the property address?</h2>
             <p className="text-sm text-muted-foreground mt-1">
               You can change this later.
             </p>
@@ -173,15 +173,48 @@ type Tab = "estimate" | "deal" | "export" | "photos" | "review";
 
 export function SparkApp() {
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 850);
+    return () => clearTimeout(t);
+  }, []);
   if (!mounted) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-muted-foreground text-sm">Loading Spark Estimator…</div>
-      </div>
-    );
+    return <SplashScreen />;
   }
   return <AppInner />;
+}
+
+function SplashScreen() {
+  return (
+    <div className="min-h-[100dvh] grad-navy flex flex-col items-center justify-center text-navy-foreground relative overflow-hidden">
+      <div
+        aria-hidden
+        className="absolute inset-0 opacity-40"
+        style={{
+          background:
+            "radial-gradient(ellipse at 30% 20%, oklch(0.55 0.22 264 / 0.5), transparent 60%), radial-gradient(ellipse at 80% 90%, oklch(0.78 0.16 70 / 0.35), transparent 55%)",
+        }}
+      />
+      <div className="relative grid place-items-center">
+        <div className="absolute h-32 w-32 rounded-3xl border border-white/30 animate-splash-ring" />
+        <div
+          className="absolute h-32 w-32 rounded-3xl border border-white/20 animate-splash-ring"
+          style={{ animationDelay: "0.6s" }}
+        />
+        <img
+          src={sparkLogo}
+          alt="Spark Estimator"
+          className="relative h-20 w-20 rounded-3xl shadow-float animate-splash-pulse"
+        />
+      </div>
+      <div className="relative mt-8 text-[10px] tracking-[0.4em] font-bold opacity-80">
+        SPARK ESTIMATOR
+      </div>
+      <div className="relative mt-2 text-xs opacity-60">Tulsa-market repair pricing</div>
+      <div className="relative mt-6 h-1 w-32 overflow-hidden rounded-full bg-white/15">
+        <div className="h-full w-1/3 bg-white/70 rounded-full animate-[spark-shimmer_1.2s_ease-in-out_infinite]" />
+      </div>
+    </div>
+  );
 }
 
 function AppInner() {
@@ -206,9 +239,9 @@ function AppInner() {
   if (!project) return null;
 
   return (
-    <div className="min-h-[100dvh] bg-background pb-24 text-foreground">
+    <div className="min-h-[100dvh] bg-background pb-32 text-foreground">
       <TopBar project={project} onOpenTab={setTab} />
-      <main className="px-4 pt-4">
+      <main className="px-5 pt-5 space-y-6">
         {tab === "estimate" && <EstimateTab project={project} onGoDeal={() => setTab("deal")} />}
         {tab === "deal" && <DealTab project={project} />}
         {tab === "export" && <ExportTab project={project} />}
@@ -224,26 +257,26 @@ function AppInner() {
 function TopBar({ project, onOpenTab }: { project: Project; onOpenTab: (t: Tab) => void }) {
   const [open, setOpen] = useState(false);
   return (
-    <header className="sticky top-0 z-30 bg-background/85 backdrop-blur border-b">
-      <div className="flex items-center gap-3 px-4 py-3">
-        <img src={sparkLogo} alt="Spark" className="h-9 w-9 rounded-xl shadow-card" />
+    <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-border/60">
+      <div className="flex items-center gap-3 px-5 py-3.5">
+        <img src={sparkLogo} alt="Spark" className="h-10 w-10 rounded-2xl shadow-card" />
         <div className="flex-1 min-w-0">
-          <div className="text-[10px] tracking-[0.22em] font-semibold text-muted-foreground">
+          <div className="text-[10px] tracking-[0.28em] font-bold text-muted-foreground">
             SPARK ESTIMATOR
           </div>
-          <div className="text-sm font-semibold text-navy truncate">{project.name}</div>
+          <div className="text-[15px] font-bold text-navy truncate tracking-tight">{project.name}</div>
         </div>
         <button
           aria-label="Projects & settings"
           onClick={() => setOpen(true)}
-          className="h-9 w-9 grid place-items-center rounded-lg hover:bg-secondary text-navy"
+          className="h-10 w-10 grid place-items-center rounded-xl hover:bg-secondary text-navy"
         >
           <SettingsIcon className="h-5 w-5" />
         </button>
         <button
           aria-label="Export"
           onClick={() => onOpenTab("export")}
-          className="h-9 w-9 grid place-items-center rounded-lg hover:bg-secondary text-navy"
+          className="h-10 w-10 grid place-items-center rounded-xl hover:bg-secondary text-navy"
         >
           <Download className="h-5 w-5" />
         </button>
@@ -270,7 +303,7 @@ function ProjectsSheet({ onClose }: { onClose: () => void }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-navy">Walkthroughs</h2>
+          <h2 className="text-xl font-bold text-navy tracking-tight">Walkthroughs</h2>
           <button onClick={onClose} className="text-muted-foreground p-1">
             <X className="h-5 w-5" />
           </button>
@@ -370,27 +403,37 @@ function BottomNav({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
     { id: "review", label: "Review", icon: <ClipboardList className="h-5 w-5" /> },
   ];
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-30 border-t bg-background/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">
-      <div className="grid grid-cols-5">
-        {items.map((it) => {
-          const active = tab === it.id;
-          return (
-            <button
-              key={it.id}
-              onClick={() => setTab(it.id)}
-              className={`flex flex-col items-center justify-center gap-1 py-2 ${
-                active ? "text-primary" : "text-muted-foreground"
-              }`}
-            >
-              <div
-                className={`h-9 w-9 grid place-items-center rounded-xl ${active ? "bg-primary/10" : ""}`}
+    <nav className="fixed inset-x-0 z-30 bottom-0 pointer-events-none pb-[max(env(safe-area-inset-bottom),12px)] px-4">
+      <div className="pointer-events-auto mx-auto max-w-md rounded-[28px] bg-background/85 backdrop-blur-xl border border-border/70 shadow-float px-2 py-1.5">
+        <div className="grid grid-cols-5">
+          {items.map((it) => {
+            const active = tab === it.id;
+            return (
+              <button
+                key={it.id}
+                onClick={() => setTab(it.id)}
+                className={`flex flex-col items-center justify-center gap-0.5 py-1.5 rounded-2xl transition-colors ${
+                  active ? "text-primary-foreground" : "text-muted-foreground hover:text-navy"
+                }`}
               >
-                {it.icon}
-              </div>
-              <span className="text-[10px] font-medium">{it.label}</span>
-            </button>
-          );
-        })}
+                <div
+                  className={`h-10 w-10 grid place-items-center rounded-2xl transition-all duration-300 ${
+                    active
+                      ? "grad-hero shadow-lift scale-105"
+                      : "bg-transparent"
+                  }`}
+                >
+                  {it.icon}
+                </div>
+                <span
+                  className={`text-[10px] font-semibold tracking-wide ${active ? "text-navy" : ""}`}
+                >
+                  {it.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </nav>
   );
@@ -756,7 +799,7 @@ function GroupCard({
     (groupState?.customItems.length ?? 0);
   return (
     <div
-      className={`rounded-2xl border bg-card shadow-card overflow-hidden ${
+      className={`rounded-2xl border border-border/70 card-surface shadow-card hover-lift overflow-hidden ${
         rollup.reviewed ? "border-primary/50" : ""
       }`}
     >
@@ -1174,7 +1217,7 @@ function DealTab({ project }: { project: Project }) {
 
       {/* Margin gauge */}
       {d.purchasePrice > 0 && d.arv > 0 && (
-        <section className="rounded-2xl border bg-card shadow-card p-4">
+        <section className="rounded-2xl border border-border/70 card-surface shadow-card hover-lift p-4">
           <div className="flex items-baseline justify-between mb-2">
             <div className="text-[10px] tracking-[0.18em] text-muted-foreground font-semibold">
               MARGIN VS TARGET
@@ -1209,7 +1252,7 @@ function DealTab({ project }: { project: Project }) {
         </section>
       )}
 
-      <section className="rounded-2xl border bg-card shadow-card p-4 space-y-4">
+      <section className="rounded-2xl border border-border/70 card-surface shadow-card hover-lift p-4 space-y-4">
         <DealInput
           label="After Repair Value (ARV)"
           value={d.arv}
@@ -1238,7 +1281,7 @@ function DealTab({ project }: { project: Project }) {
 
       {/* Visual equation */}
       {d.arv > 0 && (
-        <section className="rounded-2xl border bg-card shadow-card p-4">
+        <section className="rounded-2xl border border-border/70 card-surface shadow-card hover-lift p-4">
           <div className="text-[10px] tracking-[0.18em] text-muted-foreground font-semibold mb-3">
             THE EQUATION
           </div>
@@ -1264,7 +1307,7 @@ function DealTab({ project }: { project: Project }) {
         </section>
       )}
 
-      <section className="rounded-2xl border bg-card shadow-card p-4">
+      <section className="rounded-2xl border border-border/70 card-surface shadow-card hover-lift p-4">
         <div className="text-[10px] tracking-[0.18em] text-muted-foreground font-semibold mb-2">
           BREAKDOWN
         </div>
@@ -1415,8 +1458,8 @@ function ExportTab({ project }: { project: Project }) {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-navy">Export</h2>
-      <section className="rounded-2xl border bg-card shadow-card p-4">
+      <h2 className="text-3xl font-black text-navy tracking-tight">Export</h2>
+      <section className="rounded-2xl border border-border/70 card-surface shadow-card hover-lift p-4">
         <div className="text-[10px] tracking-[0.18em] text-muted-foreground font-semibold">
           SUMMARY
         </div>
@@ -1435,7 +1478,7 @@ function ExportTab({ project }: { project: Project }) {
           Includes a styled .xlsx breakdown, all photos, and a plain-text summary.
         </p>
       </section>
-      <section className="rounded-2xl border bg-card shadow-card p-4">
+      <section className="rounded-2xl border border-border/70 card-surface shadow-card hover-lift p-4">
         <div className="text-[10px] tracking-[0.18em] text-muted-foreground font-semibold mb-2">
           ROOMS
         </div>
@@ -1493,11 +1536,11 @@ function ExportSheet({
         {phase === "preview" && (
           <>
             <div className="flex items-center justify-between mb-1">
-              <h3 className="text-lg font-bold text-navy">Export preview</h3>
+              <h3 className="text-xl font-black text-navy tracking-tight">Export preview</h3>
               <button onClick={onClose} className="p-1 text-muted-foreground"><X className="h-5 w-5" /></button>
             </div>
             <p className="text-xs text-muted-foreground mb-4">Here's what will be in your ZIP:</p>
-            <div className="rounded-2xl border bg-card shadow-card p-4 space-y-2">
+            <div className="rounded-2xl border border-border/70 card-surface shadow-card hover-lift p-4 space-y-2">
               <PreviewRow k="Property" v={project.address || project.name} />
               <PreviewRow k="Repair total" v={fmtMoney(total)} highlight />
               <PreviewRow k="Line items" v={`${lineItemCount}`} />
@@ -1684,7 +1727,7 @@ function PhotosTab({ project }: { project: Project }) {
   return (
     <div className="space-y-4">
       <div className="flex items-baseline justify-between">
-        <h2 className="text-2xl font-bold text-navy">Photos</h2>
+        <h2 className="text-3xl font-black text-navy tracking-tight">Photos</h2>
         <span className="text-xs text-muted-foreground">
           {project.photos.length} photo{project.photos.length === 1 ? "" : "s"}
         </span>
@@ -1946,7 +1989,7 @@ function ReviewTab({ project }: { project: Project }) {
   );
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-navy">Review</h2>
+      <h2 className="text-3xl font-black text-navy tracking-tight">Review</h2>
       <div className="grid grid-cols-3 gap-2">
         <StatCard label="Total" value={fmtMoney(total)} />
         <StatCard label="Groups" value={`${reviewed}/${totalGroups}`} />
@@ -1955,7 +1998,7 @@ function ReviewTab({ project }: { project: Project }) {
       {rollups
         .filter((r) => r.lines.length > 0 || r.noAction)
         .map((r) => (
-          <div key={r.roomId + r.groupId} className="rounded-2xl border bg-card shadow-card p-4">
+          <div key={r.roomId + r.groupId} className="rounded-2xl border border-border/70 card-surface shadow-card hover-lift p-4">
             <div className="flex justify-between items-baseline mb-2">
               <div>
                 <div className="text-[10px] tracking-[0.18em] text-muted-foreground font-semibold">

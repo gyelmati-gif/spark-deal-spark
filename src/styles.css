@@ -70,21 +70,21 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(0.985 0.003 250);
+  --background: oklch(0.985 0.006 80);
   --foreground: oklch(0.18 0.03 255);
-  --card: oklch(1 0 0);
+  --card: oklch(0.995 0.004 80);
   --card-foreground: oklch(0.18 0.03 255);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.18 0.03 255);
-  --navy: oklch(0.34 0.06 252);
+  --navy: oklch(0.32 0.075 258);
   --navy-foreground: oklch(0.985 0.003 250);
   --amber: oklch(0.78 0.16 70);
   --amber-foreground: oklch(0.2 0.04 60);
   --primary: oklch(0.55 0.22 264);
   --primary-foreground: oklch(0.99 0.005 250);
-  --secondary: oklch(0.96 0.01 250);
+  --secondary: oklch(0.955 0.012 245);
   --secondary-foreground: oklch(0.25 0.05 255);
-  --muted: oklch(0.96 0.01 250);
+  --muted: oklch(0.955 0.012 245);
   --muted-foreground: oklch(0.5 0.02 255);
   --accent: oklch(0.95 0.04 260);
   --accent-foreground: oklch(0.25 0.06 260);
@@ -93,13 +93,16 @@
   --success: oklch(0.62 0.16 150);
   --warning: oklch(0.78 0.16 70);
   --danger: oklch(0.62 0.22 27);
-  --border: oklch(0.92 0.008 250);
+  --border: oklch(0.915 0.012 245);
   --input: oklch(0.92 0.008 250);
   --ring: oklch(0.65 0.18 264);
-  --grad-hero: linear-gradient(135deg, oklch(0.45 0.2 264), oklch(0.3 0.08 255));
+  --grad-hero: linear-gradient(135deg, oklch(0.5 0.22 264), oklch(0.28 0.09 258) 90%);
+  --grad-navy: linear-gradient(160deg, oklch(0.36 0.085 258), oklch(0.24 0.07 260));
+  --grad-card: linear-gradient(170deg, oklch(1 0 0) 0%, oklch(0.985 0.01 250) 100%);
   --grad-amber: linear-gradient(135deg, oklch(0.82 0.16 70), oklch(0.7 0.18 45));
-  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.05);
-  --shadow-lift: 0 8px 24px -8px rgba(30, 58, 95, 0.18);
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 12px -6px rgba(30, 58, 95, 0.08);
+  --shadow-lift: 0 10px 30px -10px rgba(30, 58, 95, 0.22), 0 4px 10px -6px rgba(30, 58, 95, 0.08);
+  --shadow-float: 0 14px 40px -12px rgba(15, 23, 42, 0.22), 0 4px 12px -4px rgba(15, 23, 42, 0.08);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -161,6 +164,17 @@
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior-y: contain;
     font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-feature-settings: "ss01", "cv11";
+    letter-spacing: -0.005em;
+  }
+  button {
+    transition: transform 0.12s ease, background-color 0.18s ease, box-shadow 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+  }
+  button:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  h1, h2, h3 {
+    letter-spacing: -0.02em;
   }
 }
 
@@ -181,6 +195,23 @@
 }
 @utility hero-surface {
   background-image: linear-gradient(160deg, oklch(1 0 0) 0%, oklch(0.97 0.015 255) 55%, oklch(0.94 0.03 260) 100%);
+}
+@utility card-surface {
+  background-image: var(--grad-card);
+}
+@utility grad-navy {
+  background-image: var(--grad-navy);
+}
+@utility shadow-float {
+  box-shadow: var(--shadow-float);
+}
+@utility hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  &:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift); }
+}
+@utility press {
+  transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+  &:active { transform: scale(0.96); }
 }
 @utility deal-glow {
   box-shadow:
@@ -227,6 +258,32 @@
 }
 @utility animate-glow-pulse {
   animation: spark-glow-pulse 3.6s ease-in-out infinite;
+}
+@keyframes spark-splash-pulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0 oklch(0.78 0.16 70 / 0)); }
+  50% { transform: scale(1.06); filter: drop-shadow(0 0 24px oklch(0.78 0.16 70 / 0.55)); }
+}
+@keyframes spark-splash-ring {
+  0% { transform: scale(0.85); opacity: 0.7; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+@keyframes spark-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@utility animate-splash-pulse {
+  animation: spark-splash-pulse 1.8s ease-in-out infinite;
+}
+@utility animate-splash-ring {
+  animation: spark-splash-ring 1.8s ease-out infinite;
+}
+@utility shimmer-text {
+  background: linear-gradient(90deg, oklch(0.7 0.05 255) 0%, oklch(0.4 0.1 258) 50%, oklch(0.7 0.05 255) 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: spark-shimmer 2.2s linear infinite;
 }
 @utility verdict-strong {
   background: linear-gradient(135deg, oklch(0.6 0.16 150), oklch(0.5 0.18 155));
