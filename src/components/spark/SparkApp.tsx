@@ -239,9 +239,9 @@ function AppInner() {
   if (!project) return null;
 
   return (
-    <div className="min-h-[100dvh] bg-background pb-24 text-foreground">
+    <div className="min-h-[100dvh] bg-background pb-32 text-foreground">
       <TopBar project={project} onOpenTab={setTab} />
-      <main className="px-4 pt-4">
+      <main className="px-5 pt-5 space-y-6">
         {tab === "estimate" && <EstimateTab project={project} onGoDeal={() => setTab("deal")} />}
         {tab === "deal" && <DealTab project={project} />}
         {tab === "export" && <ExportTab project={project} />}
@@ -257,26 +257,26 @@ function AppInner() {
 function TopBar({ project, onOpenTab }: { project: Project; onOpenTab: (t: Tab) => void }) {
   const [open, setOpen] = useState(false);
   return (
-    <header className="sticky top-0 z-30 bg-background/85 backdrop-blur border-b">
-      <div className="flex items-center gap-3 px-4 py-3">
-        <img src={sparkLogo} alt="Spark" className="h-9 w-9 rounded-xl shadow-card" />
+    <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-border/60">
+      <div className="flex items-center gap-3 px-5 py-3.5">
+        <img src={sparkLogo} alt="Spark" className="h-10 w-10 rounded-2xl shadow-card" />
         <div className="flex-1 min-w-0">
-          <div className="text-[10px] tracking-[0.22em] font-semibold text-muted-foreground">
+          <div className="text-[10px] tracking-[0.28em] font-bold text-muted-foreground">
             SPARK ESTIMATOR
           </div>
-          <div className="text-sm font-semibold text-navy truncate">{project.name}</div>
+          <div className="text-[15px] font-bold text-navy truncate tracking-tight">{project.name}</div>
         </div>
         <button
           aria-label="Projects & settings"
           onClick={() => setOpen(true)}
-          className="h-9 w-9 grid place-items-center rounded-lg hover:bg-secondary text-navy"
+          className="h-10 w-10 grid place-items-center rounded-xl hover:bg-secondary text-navy"
         >
           <SettingsIcon className="h-5 w-5" />
         </button>
         <button
           aria-label="Export"
           onClick={() => onOpenTab("export")}
-          className="h-9 w-9 grid place-items-center rounded-lg hover:bg-secondary text-navy"
+          className="h-10 w-10 grid place-items-center rounded-xl hover:bg-secondary text-navy"
         >
           <Download className="h-5 w-5" />
         </button>
@@ -403,27 +403,37 @@ function BottomNav({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
     { id: "review", label: "Review", icon: <ClipboardList className="h-5 w-5" /> },
   ];
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-30 border-t bg-background/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">
-      <div className="grid grid-cols-5">
-        {items.map((it) => {
-          const active = tab === it.id;
-          return (
-            <button
-              key={it.id}
-              onClick={() => setTab(it.id)}
-              className={`flex flex-col items-center justify-center gap-1 py-2 ${
-                active ? "text-primary" : "text-muted-foreground"
-              }`}
-            >
-              <div
-                className={`h-9 w-9 grid place-items-center rounded-xl ${active ? "bg-primary/10" : ""}`}
+    <nav className="fixed inset-x-0 z-30 bottom-0 pointer-events-none pb-[max(env(safe-area-inset-bottom),12px)] px-4">
+      <div className="pointer-events-auto mx-auto max-w-md rounded-[28px] bg-background/85 backdrop-blur-xl border border-border/70 shadow-float px-2 py-1.5">
+        <div className="grid grid-cols-5">
+          {items.map((it) => {
+            const active = tab === it.id;
+            return (
+              <button
+                key={it.id}
+                onClick={() => setTab(it.id)}
+                className={`flex flex-col items-center justify-center gap-0.5 py-1.5 rounded-2xl transition-colors ${
+                  active ? "text-primary-foreground" : "text-muted-foreground hover:text-navy"
+                }`}
               >
-                {it.icon}
-              </div>
-              <span className="text-[10px] font-medium">{it.label}</span>
-            </button>
-          );
-        })}
+                <div
+                  className={`h-10 w-10 grid place-items-center rounded-2xl transition-all duration-300 ${
+                    active
+                      ? "grad-hero shadow-lift scale-105"
+                      : "bg-transparent"
+                  }`}
+                >
+                  {it.icon}
+                </div>
+                <span
+                  className={`text-[10px] font-semibold tracking-wide ${active ? "text-navy" : ""}`}
+                >
+                  {it.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </nav>
   );
