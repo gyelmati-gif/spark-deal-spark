@@ -53,6 +53,95 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+function useBounce(trigger: number) {
+  const [on, setOn] = useState(false);
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) { first.current = false; return; }
+    setOn(true);
+    const t = setTimeout(() => setOn(false), 450);
+    return () => clearTimeout(t);
+  }, [trigger]);
+  return on;
+}
+
+/* ----------------------------- Welcome ----------------------------- */
+function WelcomeFlow() {
+  const [step, setStep] = useState<"intro" | "address">("intro");
+  const [addr, setAddr] = useState("");
+  const createProject = useApp((s) => s.createProject);
+  const setOnboarded = useApp((s) => s.setOnboarded);
+  const finish = () => {
+    const name = addr.trim() || "First Walkthrough";
+    const id = createProject(name);
+    if (addr.trim()) {
+      useApp.setState((s) => {
+        const p = s.projects[id];
+        if (!p) return s;
+        return { projects: { ...s.projects, [id]: { ...p, address: addr.trim() } } };
+      });
+    }
+    setOnboarded(true);
+  };
+  return (
+    <div className="min-h-[100dvh] bg-background flex items-center justify-center p-6">
+      <div className="w-full max-w-sm">
+        {step === "intro" ? (
+          <div className="text-center animate-fade-in">
+            <div className="mx-auto h-20 w-20 rounded-3xl shadow-lift grad-hero grid place-items-center mb-6 animate-glow-pulse">
+              <img src={sparkLogo} alt="Spark" className="h-12 w-12" />
+            </div>
+            <div className="text-[11px] tracking-[0.28em] font-semibold text-muted-foreground">
+              SPARK ESTIMATOR
+            </div>
+            <h1 className="grad-hero-number text-4xl font-black tracking-tight mt-2">
+              Know the deal
+              <br />before you leave.
+            </h1>
+            <p className="text-sm text-muted-foreground mt-3">
+              Walk the property one-handed. Get a live repair total and your Maximum
+              Allowable Offer in seconds.
+            </p>
+            <button
+              onClick={() => setStep("address")}
+              className="mt-8 w-full py-4 rounded-2xl grad-hero text-navy-foreground font-semibold deal-glow text-base"
+            >
+              Start your first walkthrough
+            </button>
+          </div>
+        ) : (
+          <div className="animate-fade-in">
+            <button
+              onClick={() => setStep("intro")}
+              className="text-sm text-muted-foreground flex items-center gap-1 mb-4"
+            >
+              <ChevronLeft className="h-4 w-4" /> Back
+            </button>
+            <h2 className="text-2xl font-bold text-navy">What's the property address?</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              You can change this later.
+            </p>
+            <input
+              autoFocus
+              value={addr}
+              onChange={(e) => setAddr(e.target.value)}
+              placeholder="123 Main St, Tulsa OK"
+              className="mt-5 w-full px-4 py-3.5 rounded-xl border bg-card text-base"
+              onKeyDown={(e) => { if (e.key === "Enter") finish(); }}
+            />
+            <button
+              onClick={finish}
+              className="mt-4 w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold"
+            >
+              {addr.trim() ? "Start walkthrough" : "Skip for now"}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function useCountUp(target: number, duration = 500) {
   const [value, setValue] = useState(target);
   const fromRef = useRef(target);
@@ -99,15 +188,19 @@ function AppInner() {
   const projects = useApp((s) => s.projects);
   const currentId = useApp((s) => s.currentId);
   const createProject = useApp((s) => s.createProject);
+  const hasOnboarded = useApp((s) => s.hasOnboarded);
   const [tab, setTab] = useState<Tab>("estimate");
 
   // Ensure at least one project
   useEffect(() => {
+    if (!hasOnboarded) return;
     if (!currentId || !projects[currentId]) {
       if (Object.keys(projects).length === 0) createProject("123 Main St");
       else useApp.getState().selectProject(Object.keys(projects)[0]);
     }
-  }, [currentId, projects, createProject]);
+  }, [currentId, projects, createProject, hasOnboarded]);
+
+  if (!hasOnboarded) return <WelcomeFlow />;
 
   const project = currentId ? projects[currentId] : null;
   if (!project) return null;
@@ -312,6 +405,7 @@ function EstimateTab({ project, onGoDeal }: { project: Project; onGoDeal: () => 
   );
   const deal = useMemo(() => computeDeal(total, project.deal), [total, project.deal]);
   const animatedTotal = useCountUp(total);
+  const totalBounce = useBounce(total);
   const dealValue =
     project.deal.arv > 0
       ? project.deal.purchasePrice > 0
@@ -342,7 +436,9 @@ function EstimateTab({ project, onGoDeal }: { project: Project; onGoDeal: () => 
         <div className="text-[10px] tracking-[0.22em] font-semibold text-muted-foreground">
           REPAIR ESTIMATE
         </div>
-        <div className="grad-hero-number text-6xl sm:text-7xl font-black tracking-tighter tabular-nums mt-1 leading-none drop-shadow-sm">
+        <div
+          className={`grad-hero-number text-6xl sm:text-7xl font-black tracking-tighter tabular-nums mt-1 leading-none drop-shadow-sm origin-left ${totalBounce ? "animate-spark-bounce" : ""}`}
+        >
           {fmtMoney(animatedTotal)}
         </div>
         <div className="mt-2 flex items-center gap-2">
@@ -431,11 +527,14 @@ function EstimateTab({ project, onGoDeal }: { project: Project; onGoDeal: () => 
         rooms={project.rooms}
         activeId={activeRoomId}
         onChange={setActiveRoomId}
+        rollups={rollups}
       />
 
       {/* Groups for active room */}
       {activeRoom && (
-        <RoomGroups room={activeRoom} project={project} rollups={rollups} />
+        <div key={activeRoom.id} className="animate-fade-in">
+          <RoomGroups room={activeRoom} project={project} rollups={rollups} />
+        </div>
       )}
     </div>
   );
@@ -482,35 +581,45 @@ function RoomTabs({
   rooms,
   activeId,
   onChange,
+  rollups,
 }: {
   rooms: Room[];
   activeId: string;
   onChange: (id: string) => void;
+  rollups: ReturnType<typeof rollupProject>["rollups"];
 }) {
   const [adding, setAdding] = useState(false);
   return (
     <div className="-mx-4 px-4">
-      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 pt-0.5">
         {rooms.map((r) => {
           const active = r.id === activeId;
+          const roomRollups = rollups.filter((x) => x.roomId === r.id);
+          const allReviewed =
+            roomRollups.length > 0 && roomRollups.every((x) => x.reviewed);
           return (
             <button
               key={r.id}
               onClick={() => onChange(r.id)}
-              className={`shrink-0 px-3 py-2 text-sm font-medium relative ${
-                active ? "text-navy" : "text-muted-foreground"
+              className={`shrink-0 px-4 py-2 text-sm font-semibold rounded-full transition-all flex items-center gap-1.5 ${
+                active
+                  ? "bg-navy text-navy-foreground shadow-lift"
+                  : "bg-secondary/60 text-muted-foreground hover:text-navy"
               }`}
             >
-              {r.label}
-              {active && (
-                <div className="absolute left-2 right-2 -bottom-0.5 h-0.5 rounded-full grad-amber" />
+              <span>{r.label}</span>
+              {allReviewed && (
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${active ? "bg-success" : "bg-success"}`}
+                  aria-label="All reviewed"
+                />
               )}
             </button>
           );
         })}
         <button
           onClick={() => setAdding(true)}
-          className="shrink-0 px-3 py-2 text-sm font-medium text-primary flex items-center gap-1"
+          className="shrink-0 px-3 py-2 text-sm font-semibold text-primary flex items-center gap-1 rounded-full border-2 border-dashed border-primary/40 hover:bg-primary/5"
         >
           <Plus className="h-4 w-4" /> Room
         </button>
@@ -659,8 +768,8 @@ function GroupCard({
           <div className="flex items-center gap-2">
             <div className="font-semibold text-navy">{groupName}</div>
             {rollup.reviewed && (
-              <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
-                <Check className="h-3 w-3" /> Reviewed
+              <span className="inline-flex items-center gap-0.5 text-[10px] px-2 py-0.5 rounded-full bg-success/15 text-success font-bold tracking-wide animate-scale-in">
+                <Check className="h-3 w-3" strokeWidth={3} /> REVIEWED
               </span>
             )}
           </div>
@@ -770,16 +879,22 @@ function LineItemRow({
   useEffect(() => setPriceInput(price.toString()), [price]);
 
   return (
-    <div className="px-4 py-3">
+    <div
+      className={`px-4 py-3 border-l-[3px] transition-colors duration-300 ${
+        checked ? "border-primary bg-primary/[0.04]" : "border-transparent"
+      }`}
+    >
       <div className="flex items-start gap-3">
         <button
           onClick={() => toggleItem(room.id, groupId, itemId)}
-          className={`mt-0.5 h-5 w-5 rounded-md border-2 grid place-items-center shrink-0 transition-colors ${
-            checked ? "bg-primary border-primary" : "border-muted-foreground/40"
+          className={`mt-0.5 h-6 w-6 rounded-md border-2 grid place-items-center shrink-0 transition-all duration-200 ${
+            checked ? "bg-primary border-primary scale-100" : "border-muted-foreground/40 hover:border-primary/60"
           }`}
           aria-label={checked ? "Uncheck" : "Check"}
         >
-          {checked && <Check className="h-3.5 w-3.5 text-primary-foreground" strokeWidth={3} />}
+          {checked && (
+            <Check className="h-4 w-4 text-primary-foreground animate-check-pop" strokeWidth={3.5} />
+          )}
         </button>
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2">
@@ -978,17 +1093,62 @@ function DealTab({ project }: { project: Project }) {
   const setDeal = useApp((s) => s.setDeal);
   const d = project.deal;
   const deal = useMemo(() => computeDeal(total, d), [total, d]);
+  const animatedMao = useCountUp(Math.max(0, deal.mao));
+  const maoBounce = useBounce(Math.max(0, deal.mao));
+  const [copied, setCopied] = useState(false);
+  const verdictClass =
+    deal.verdict === "strong"
+      ? "verdict-strong"
+      : deal.verdict === "thin"
+        ? "verdict-thin"
+        : deal.verdict === "pass"
+          ? "verdict-pass"
+          : "verdict-none";
+  const verdictHeadline =
+    deal.verdict === "strong"
+      ? "STRONG DEAL"
+      : deal.verdict === "thin"
+        ? "THIN MARGIN"
+        : deal.verdict === "pass"
+          ? "PASS"
+          : "NEEDS ARV";
+  const targetMargin = d.targetMargin || 20;
+  const currentMargin = deal.marginOnArv ?? 0;
+  const gaugePct = Math.max(0, Math.min(150, (currentMargin / targetMargin) * 100));
+  const copyMao = async () => {
+    try {
+      await navigator.clipboard.writeText(fmtMoney(Math.max(0, deal.mao)));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch {}
+  };
 
   return (
     <div className="space-y-5">
-      <section className="rounded-2xl shadow-lift grad-hero text-navy-foreground p-5">
-        <div className="text-[10px] tracking-[0.22em] font-semibold opacity-75">
+      {/* Verdict banner */}
+      <section className={`rounded-2xl p-4 shadow-lift ${verdictClass}`}>
+        <div className="text-[10px] tracking-[0.28em] font-semibold opacity-80">VERDICT</div>
+        <div className="text-4xl font-black tracking-tight mt-0.5">{verdictHeadline}</div>
+        <div className="text-sm opacity-90 mt-1">{deal.verdictLabel}</div>
+      </section>
+
+      {/* MAO hero */}
+      <section className="rounded-2xl shadow-lift hero-surface border border-border/60 p-5 relative overflow-hidden deal-glow">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-24 -right-16 h-56 w-56 rounded-full blur-3xl opacity-40"
+          style={{ background: "radial-gradient(circle, var(--amber), transparent 70%)" }}
+        />
+        <div className="text-[10px] tracking-[0.22em] font-semibold text-muted-foreground">
           MAXIMUM ALLOWABLE OFFER
         </div>
-        <div className="text-5xl font-black tabular-nums mt-1">
-          {fmtMoney(Math.max(0, deal.mao))}
+        <div
+          className={`grad-hero-number font-black tabular-nums tracking-tighter leading-none mt-1 origin-left ${maoBounce ? "animate-spark-bounce" : ""}`}
+          style={{ fontSize: "clamp(3.5rem, 14vw, 5rem)" }}
+        >
+          {fmtMoney(animatedMao)}
         </div>
-        <div className="mt-1 text-sm opacity-80">
+        <div className="mt-2 text-sm text-muted-foreground">
           using {d.rule === "margin" ? `${d.targetMargin}% target margin` : "the 70% rule"}
         </div>
         <div className="mt-3 flex gap-2">
@@ -1003,18 +1163,51 @@ function DealTab({ project }: { project: Project }) {
             label="70% rule"
           />
         </div>
-        <div className="mt-4 flex items-center justify-between">
-          <div>
-            <div className="text-[10px] tracking-[0.18em] opacity-70 font-semibold">VERDICT</div>
-            <div className="text-lg font-bold">{deal.verdictLabel}</div>
-          </div>
-          <VerdictBadge verdict={deal.verdict} label={deal.verdictLabel} />
-        </div>
+        <button
+          onClick={copyMao}
+          className="mt-4 w-full py-2.5 rounded-xl bg-navy text-navy-foreground font-semibold text-sm flex items-center justify-center gap-2 transition-colors"
+        >
+          {copied ? <Check className="h-4 w-4" /> : <ClipboardList className="h-4 w-4" />}
+          {copied ? "Copied!" : "Copy MAO to clipboard"}
+        </button>
       </section>
 
-      <div className="text-center text-xs text-muted-foreground italic">
-        “The most important number in the deal.”
-      </div>
+      {/* Margin gauge */}
+      {d.purchasePrice > 0 && d.arv > 0 && (
+        <section className="rounded-2xl border bg-card shadow-card p-4">
+          <div className="flex items-baseline justify-between mb-2">
+            <div className="text-[10px] tracking-[0.18em] text-muted-foreground font-semibold">
+              MARGIN VS TARGET
+            </div>
+            <div className="tabular-nums text-sm">
+              <span className="font-bold text-navy">{currentMargin.toFixed(1)}%</span>
+              <span className="text-muted-foreground"> / {targetMargin}%</span>
+            </div>
+          </div>
+          <div className="relative h-3 rounded-full bg-secondary overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${
+                deal.verdict === "strong"
+                  ? "bg-success"
+                  : deal.verdict === "thin"
+                    ? "bg-warning"
+                    : "bg-danger"
+              }`}
+              style={{ width: `${Math.min(100, gaugePct)}%` }}
+            />
+            <div
+              className="absolute top-0 bottom-0 w-0.5 bg-navy"
+              style={{ left: "66.66%" }}
+              aria-label="Target"
+            />
+          </div>
+          <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+            <span>0%</span>
+            <span>Target</span>
+            <span>{Math.round(targetMargin * 1.5)}%</span>
+          </div>
+        </section>
+      )}
 
       <section className="rounded-2xl border bg-card shadow-card p-4 space-y-4">
         <DealInput
@@ -1043,6 +1236,34 @@ function DealTab({ project }: { project: Project }) {
         </div>
       </section>
 
+      {/* Visual equation */}
+      {d.arv > 0 && (
+        <section className="rounded-2xl border bg-card shadow-card p-4">
+          <div className="text-[10px] tracking-[0.18em] text-muted-foreground font-semibold mb-3">
+            THE EQUATION
+          </div>
+          <div className="grid grid-cols-[1fr_auto_1fr_auto_1fr] gap-1.5 items-center text-center">
+            <EqCell label="ARV" value={fmtMoney(d.arv)} tone="navy" />
+            <EqOp>−</EqOp>
+            <EqCell label="Repairs" value={fmtMoney(total)} tone="muted" />
+            <EqOp>−</EqOp>
+            <EqCell label="Holding" value={fmtMoney(deal.holdingCost)} tone="muted" />
+          </div>
+          <div className="my-2 grid grid-cols-[1fr_auto_1fr] gap-1.5 items-center text-center">
+            <div />
+            <EqOp>=</EqOp>
+            <EqCell
+              label={d.purchasePrice > 0 ? "Profit (after purchase)" : "MAO"}
+              value={fmtMoney(
+                d.purchasePrice > 0 ? deal.profit ?? 0 : Math.max(0, deal.mao),
+              )}
+              tone="amber"
+              big
+            />
+          </div>
+        </section>
+      )}
+
       <section className="rounded-2xl border bg-card shadow-card p-4">
         <div className="text-[10px] tracking-[0.18em] text-muted-foreground font-semibold mb-2">
           BREAKDOWN
@@ -1062,6 +1283,26 @@ function DealTab({ project }: { project: Project }) {
       </section>
     </div>
   );
+}
+
+function EqCell({
+  label, value, tone, big,
+}: { label: string; value: string; tone: "navy" | "muted" | "amber"; big?: boolean }) {
+  const cls =
+    tone === "amber"
+      ? "bg-amber/15 text-amber-foreground border-amber/40"
+      : tone === "navy"
+        ? "bg-navy text-navy-foreground border-navy"
+        : "bg-secondary text-foreground border-border";
+  return (
+    <div className={`rounded-xl border px-2 py-2 ${cls}`}>
+      <div className="text-[9px] tracking-wider opacity-70 font-semibold uppercase">{label}</div>
+      <div className={`tabular-nums font-bold ${big ? "text-lg" : "text-sm"}`}>{value}</div>
+    </div>
+  );
+}
+function EqOp({ children }: { children: React.ReactNode }) {
+  return <div className="text-xl font-bold text-muted-foreground px-0.5">{children}</div>;
 }
 
 function RuleChip({
@@ -1139,7 +1380,39 @@ function ExportTab({ project }: { project: Project }) {
     () => rollupProject(project, globals),
     [project, globals],
   );
-  const [busy, setBusy] = useState(false);
+  const [phase, setPhase] = useState<"idle" | "preview" | "working" | "done">("idle");
+  const [progress, setProgress] = useState(0);
+  const [canShare] = useState(() =>
+    typeof navigator !== "undefined" && "share" in navigator,
+  );
+
+  const runExport = async (share: boolean) => {
+    setPhase("working");
+    setProgress(8);
+    const tick = setInterval(() => {
+      setProgress((p) => (p < 88 ? p + Math.max(1, Math.round((90 - p) / 8)) : p));
+    }, 120);
+    try {
+      const blob = await exportProjectZip(project, globals, { returnBlob: share });
+      if (share && blob && "share" in navigator) {
+        const file = new File([blob], `${project.name}.zip`, { type: "application/zip" });
+        try {
+          await (navigator as Navigator & { share: (d: ShareData) => Promise<void> }).share({
+            files: [file],
+            title: project.name,
+            text: `Repair estimate: ${fmtMoney(total)}`,
+          });
+        } catch {}
+      }
+      setProgress(100);
+      setPhase("done");
+    } catch {
+      setPhase("preview");
+    } finally {
+      clearInterval(tick);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-navy">Export</h2>
@@ -1152,19 +1425,11 @@ function ExportTab({ project }: { project: Project }) {
           <StatCard label="Items" value={`${lineItemCount}`} sub="line items" />
         </div>
         <button
-          onClick={async () => {
-            setBusy(true);
-            try {
-              await exportProjectZip(project, globals);
-            } finally {
-              setBusy(false);
-            }
-          }}
-          disabled={busy}
-          className="mt-4 w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+          onClick={() => setPhase("preview")}
+          className="mt-4 w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2"
         >
           <Download className="h-5 w-5" />
-          {busy ? "Packaging…" : "Download ZIP (XLSX + photos)"}
+          Review &amp; export
         </button>
         <p className="text-[11px] text-muted-foreground mt-2">
           Includes a styled .xlsx breakdown, all photos, and a plain-text summary.
@@ -1188,6 +1453,114 @@ function ExportTab({ project }: { project: Project }) {
             </div>
           ))}
       </section>
+
+      {phase !== "idle" && (
+        <ExportSheet
+          phase={phase}
+          progress={progress}
+          project={project}
+          total={total}
+          lineItemCount={lineItemCount}
+          canShare={canShare}
+          onClose={() => setPhase("idle")}
+          onDownload={() => runExport(false)}
+          onShare={() => runExport(true)}
+        />
+      )}
+    </div>
+  );
+}
+
+function ExportSheet({
+  phase, progress, project, total, lineItemCount, canShare, onClose, onDownload, onShare,
+}: {
+  phase: "preview" | "working" | "done";
+  progress: number;
+  project: Project;
+  total: number;
+  lineItemCount: number;
+  canShare: boolean;
+  onClose: () => void;
+  onDownload: () => void;
+  onShare: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-end animate-fade-in" onClick={onClose}>
+      <div
+        className="w-full bg-background rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto animate-slide-in-right"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {phase === "preview" && (
+          <>
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-lg font-bold text-navy">Export preview</h3>
+              <button onClick={onClose} className="p-1 text-muted-foreground"><X className="h-5 w-5" /></button>
+            </div>
+            <p className="text-xs text-muted-foreground mb-4">Here's what will be in your ZIP:</p>
+            <div className="rounded-2xl border bg-card shadow-card p-4 space-y-2">
+              <PreviewRow k="Property" v={project.address || project.name} />
+              <PreviewRow k="Repair total" v={fmtMoney(total)} highlight />
+              <PreviewRow k="Line items" v={`${lineItemCount}`} />
+              <PreviewRow k="Photos" v={`${project.photos.length}`} />
+              <PreviewRow k="Rooms" v={`${project.rooms.length}`} />
+            </div>
+            <div className="grid grid-cols-1 gap-2 mt-4">
+              <button
+                onClick={onDownload}
+                className="py-3 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2"
+              >
+                <Download className="h-5 w-5" /> Download ZIP
+              </button>
+              {canShare && (
+                <button
+                  onClick={onShare}
+                  className="py-3 rounded-xl border-2 border-primary text-primary font-semibold flex items-center justify-center gap-2"
+                >
+                  Share…
+                </button>
+              )}
+            </div>
+          </>
+        )}
+        {phase === "working" && (
+          <div className="py-8 text-center">
+            <Loader2 className="h-12 w-12 text-primary animate-spin mx-auto" />
+            <div className="text-lg font-semibold text-navy mt-4">Packaging your export…</div>
+            <div className="text-xs text-muted-foreground mt-1">Generating XLSX, bundling photos</div>
+            <div className="mt-5 h-2 rounded-full bg-secondary overflow-hidden max-w-xs mx-auto">
+              <div
+                className="h-full grad-hero rounded-full transition-all duration-200"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <div className="text-xs tabular-nums text-muted-foreground mt-2">{progress}%</div>
+          </div>
+        )}
+        {phase === "done" && (
+          <div className="py-8 text-center animate-fade-in">
+            <div className="mx-auto h-20 w-20 rounded-full bg-success/15 grid place-items-center">
+              <Check className="h-10 w-10 text-success animate-check-pop" strokeWidth={3.5} />
+            </div>
+            <div className="text-2xl font-bold text-navy mt-4">Export complete</div>
+            <div className="text-sm text-muted-foreground mt-1">Your ZIP is ready.</div>
+            <button
+              onClick={onClose}
+              className="mt-6 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-semibold"
+            >
+              Done
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PreviewRow({ k, v, highlight }: { k: string; v: string; highlight?: boolean }) {
+  return (
+    <div className="flex items-center justify-between text-sm">
+      <span className="text-muted-foreground">{k}</span>
+      <span className={`tabular-nums font-semibold ${highlight ? "text-xl text-navy" : "text-foreground"}`}>{v}</span>
     </div>
   );
 }

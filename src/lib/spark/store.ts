@@ -62,6 +62,8 @@ type AppState = {
   projects: Record<string, Project>;
   currentId: string | null;
   globalPrices: Record<string, number>; // override catalog default for all projects
+  hasOnboarded: boolean;
+  setOnboarded: (v: boolean) => void;
   // actions
   createProject: (name: string) => string;
   deleteProject: (id: string) => void;
@@ -154,6 +156,8 @@ export const useApp = create<AppState>()(
       projects: {},
       currentId: null,
       globalPrices: {},
+      hasOnboarded: false,
+      setOnboarded: (v) => set({ hasOnboarded: v }),
 
       createProject: (name) => {
         const p = makeProject(name || "New Walkthrough");
