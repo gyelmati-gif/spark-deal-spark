@@ -859,6 +859,7 @@ function GroupCard({
   rollup,
   project,
   itemIds,
+  quickScan,
 }: {
   room: Room;
   groupId: string;
@@ -866,8 +867,10 @@ function GroupCard({
   rollup: ReturnType<typeof rollupProject>["rollups"][number];
   project: Project;
   itemIds: string[];
+  quickScan?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [openSelf, setOpen] = useState(false);
+  const open = quickScan ? true : openSelf;
   const setNoAction = useApp((s) => s.setNoAction);
   const groupState = project.state[room.id]?.[groupId];
   const visibleCount =
@@ -880,7 +883,7 @@ function GroupCard({
       }`}
     >
       <button
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => !quickScan && setOpen((v) => !v)}
         className="w-full px-4 py-3 flex items-center gap-3 text-left"
       >
         <div className="flex-1 min-w-0">
@@ -904,13 +907,15 @@ function GroupCard({
       </button>
       {open && (
         <div className="border-t">
-          <label className="flex items-center justify-between px-4 py-2.5 text-sm">
-            <span className="text-muted-foreground">No action needed</span>
-            <Toggle
-              checked={!!groupState?.noAction}
-              onChange={(v) => setNoAction(room.id, groupId, v)}
-            />
-          </label>
+          {!quickScan && (
+            <label className="flex items-center justify-between px-4 py-2.5 text-sm">
+              <span className="text-muted-foreground">No action needed</span>
+              <Toggle
+                checked={!!groupState?.noAction}
+                onChange={(v) => setNoAction(room.id, groupId, v)}
+              />
+            </label>
+          )}
           <div className="divide-y">
             {itemIds
               .filter((id) => !groupState?.deletedItems?.includes(id))
@@ -920,6 +925,7 @@ function GroupCard({
                   room={room}
                   groupId={groupId}
                   itemId={id}
+                  compact={quickScan}
                 />
               ))}
             {(groupState?.customItems ?? []).map((ci) => (
@@ -929,10 +935,11 @@ function GroupCard({
                 groupId={groupId}
                 itemId={ci.id}
                 custom={ci}
+                compact={quickScan}
               />
             ))}
           </div>
-          <AddCustomItem room={room} groupId={groupId} />
+          {!quickScan && <AddCustomItem room={room} groupId={groupId} />}
         </div>
       )}
     </div>
