@@ -9,9 +9,6 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 export default defineConfig({
   vite: { base: '/spark-deal-spark/' },
   tanstackStart: {
-    // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
-    // nitro/vite builds from this
-    server: { entry: "server" },
     // Build as a fully static SPA so GitHub Pages can host dist/client/index.html.
     spa: { enabled: true },
     pages: [{ path: "/" }],
