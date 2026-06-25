@@ -2265,3 +2265,53 @@ function SerialScanner({
     </div>
   );
 }
+function CompletionBanner({ onExport }: { onExport: () => void }) {
+  const colors = ["#2563EB", "#1E3A5F", "#F59E0B", "#10B981", "#EF4444"];
+  const pieces = useMemo(
+    () =>
+      Array.from({ length: 36 }, (_, i) => ({
+        left: Math.random() * 100,
+        cx: (Math.random() - 0.5) * 240 + "px",
+        cr: Math.floor(Math.random() * 1080 + 360) + "deg",
+        delay: Math.random() * 0.6,
+        dur: 2.2 + Math.random() * 1.6,
+        color: colors[i % colors.length],
+        w: 6 + Math.random() * 6,
+        h: 10 + Math.random() * 8,
+      })),
+    [],
+  );
+  return (
+    <div className="relative rounded-2xl p-5 grad-hero text-navy-foreground shadow-lift overflow-hidden animate-scale-in">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        {pieces.map((p, i) => (
+          <span
+            key={i}
+            className="confetti-piece"
+            style={{
+              left: `${p.left}%`,
+              width: p.w,
+              height: p.h,
+              background: p.color,
+              animationDelay: `${p.delay}s`,
+              animationDuration: `${p.dur}s`,
+              ["--cx" as string]: p.cx,
+              ["--cr" as string]: p.cr,
+            }}
+          />
+        ))}
+      </div>
+      <div className="relative flex items-center gap-3">
+        <div className="h-12 w-12 rounded-2xl bg-[var(--amber)] grid place-items-center shadow-card shrink-0">
+          <PartyPopper className="h-6 w-6 text-white" strokeWidth={2.2} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-base font-black tracking-tight">Walkthrough complete!</div>
+          <div className="text-xs opacity-90 mt-0.5">
+            Tap <span className="font-bold">Export</span> to download your estimate.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
