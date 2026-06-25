@@ -40,9 +40,9 @@ export interface OcrCandidate {
 // Matches with or without spacing/punctuation: "S/N:", "SN#", "SERIAL NO.", "SER#", "SERIAL:", etc.
 // Also handles common OCR confusions like "5/N" or "S/M".
 const SERIAL_LABEL_RE =
-  /(?:\b|^)(?:S\s*[\/\\|]\s*[NM]|5\s*[\/\\|]\s*N|S\s*N|SER(?:IAL)?)[.\s]*(?:NUMBER|NUM|NBR|NO|N|#)?[.\s]*[:#=\-]?\s*([A-Z0-9](?:[A-Z0-9\-\/]|\s(?!\s)){3,22}[A-Z0-9])/gi;
+  /(?:\b|^)(?:S[ \t]*[\/\\|][ \t]*[NM]|5[ \t]*[\/\\|][ \t]*N|S[ \t]*N|SER(?:IAL)?)[. \t]*(?:NUMBER|NUM|NBR|NO|N|#)?[. \t]*[:#=\-]?[ \t]*([A-Z0-9](?:[A-Z0-9\-\/]|[ \t](?![ \t])){3,22}[A-Z0-9])/gi;
 const MODEL_LABEL_RE =
-  /(?:\b|^)(?:MOD(?:EL)?|M\s*\/?\s*N|TYPE|CAT(?:ALOG)?)[.\s]*(?:NUMBER|NUM|NO|N|#)?[.\s]*[:#=\-]?\s*([A-Z0-9](?:[A-Z0-9\-\/]|\s(?!\s)){3,22}[A-Z0-9])/gi;
+  /(?:\b|^)(?:MOD(?:EL)?|M[ \t]*\/?[ \t]*N|TYPE|CAT(?:ALOG)?)[. \t]*(?:NUMBER|NUM|NO|N|#)?[. \t]*[:#=\-]?[ \t]*([A-Z0-9](?:[A-Z0-9\-\/]|[ \t](?![ \t])){3,22}[A-Z0-9])/gi;
 // Generic plate-like token. Allows internal single spaces so "AB-1234 5678" stays whole;
 // we collapse spaces later when normalizing.
 const TOKEN_RE = /[A-Z0-9](?:[A-Z0-9\-\/]| (?=[A-Z0-9])){4,28}[A-Z0-9]/g;
