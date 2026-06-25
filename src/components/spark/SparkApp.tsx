@@ -2048,6 +2048,24 @@ function ReviewTab({ project }: { project: Project }) {
           Nothing checked yet. Go to Estimate to start your walkthrough.
         </div>
       )}
+      {(lineItemCount > 0 || total > 0) && (
+        <section className="rounded-2xl hero-surface shadow-lift border border-border/60 p-6 relative overflow-hidden mt-2">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -bottom-16 -left-16 h-44 w-44 rounded-full blur-3xl opacity-40"
+            style={{ background: "radial-gradient(circle, var(--amber), transparent 70%)" }}
+          />
+          <div className="text-[10px] tracking-[0.24em] font-semibold text-muted-foreground">
+            GRAND TOTAL
+          </div>
+          <div className="grad-hero-number text-6xl sm:text-7xl font-black tracking-tighter tabular-nums mt-1 leading-none drop-shadow-sm">
+            {fmtMoney(total)}
+          </div>
+          <div className="mt-3 text-xs text-muted-foreground tabular-nums">
+            {lineItemCount} line item{lineItemCount === 1 ? "" : "s"} · {reviewed}/{totalGroups} groups reviewed
+          </div>
+        </section>
+      )}
     </div>
   );
 }
