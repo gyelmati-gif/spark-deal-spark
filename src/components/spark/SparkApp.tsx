@@ -1380,7 +1380,39 @@ function ExportTab({ project }: { project: Project }) {
     () => rollupProject(project, globals),
     [project, globals],
   );
-  const [busy, setBusy] = useState(false);
+  const [phase, setPhase] = useState<"idle" | "preview" | "working" | "done">("idle");
+  const [progress, setProgress] = useState(0);
+  const [canShare] = useState(() =>
+    typeof navigator !== "undefined" && "share" in navigator,
+  );
+
+  const runExport = async (share: boolean) => {
+    setPhase("working");
+    setProgress(8);
+    const tick = setInterval(() => {
+      setProgress((p) => (p < 88 ? p + Math.max(1, Math.round((90 - p) / 8)) : p));
+    }, 120);
+    try {
+      const blob = await exportProjectZip(project, globals, { returnBlob: share });
+      if (share && blob && "share" in navigator) {
+        const file = new File([blob], `${project.name}.zip`, { type: "application/zip" });
+        try {
+          await (navigator as Navigator & { share: (d: ShareData) => Promise<void> }).share({
+            files: [file],
+            title: project.name,
+            text: `Repair estimate: ${fmtMoney(total)}`,
+          });
+        } catch {}
+      }
+      setProgress(100);
+      setPhase("done");
+    } catch {
+      setPhase("preview");
+    } finally {
+      clearInterval(tick);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-navy">Export</h2>
@@ -1393,19 +1425,11 @@ function ExportTab({ project }: { project: Project }) {
           <StatCard label="Items" value={`${lineItemCount}`} sub="line items" />
         </div>
         <button
-          onClick={async () => {
-            setBusy(true);
-            try {
-              await exportProjectZip(project, globals);
-            } finally {
-              setBusy(false);
-            }
-          }}
-          disabled={busy}
-          className="mt-4 w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+          onClick={() => setPhase("preview")}
+          className="mt-4 w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2"
         >
           <Download className="h-5 w-5" />
-          {busy ? "Packaging…" : "Download ZIP (XLSX + photos)"}
+          Review &amp; export
         </button>
         <p className="text-[11px] text-muted-foreground mt-2">
           Includes a styled .xlsx breakdown, all photos, and a plain-text summary.
@@ -1429,6 +1453,114 @@ function ExportTab({ project }: { project: Project }) {
             </div>
           ))}
       </section>
+
+      {phase !== "idle" && (
+        <ExportSheet
+          phase={phase}
+          progress={progress}
+          project={project}
+          total={total}
+          lineItemCount={lineItemCount}
+          canShare={canShare}
+          onClose={() => setPhase("idle")}
+          onDownload={() => runExport(false)}
+          onShare={() => runExport(true)}
+        />
+      )}
+    </div>
+  );
+}
+
+function ExportSheet({
+  phase, progress, project, total, lineItemCount, canShare, onClose, onDownload, onShare,
+}: {
+  phase: "preview" | "working" | "done";
+  progress: number;
+  project: Project;
+  total: number;
+  lineItemCount: number;
+  canShare: boolean;
+  onClose: () => void;
+  onDownload: () => void;
+  onShare: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-end animate-fade-in" onClick={onClose}>
+      <div
+        className="w-full bg-background rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto animate-slide-in-right"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {phase === "preview" && (
+          <>
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-lg font-bold text-navy">Export preview</h3>
+              <button onClick={onClose} className="p-1 text-muted-foreground"><X className="h-5 w-5" /></button>
+            </div>
+            <p className="text-xs text-muted-foreground mb-4">Here's what will be in your ZIP:</p>
+            <div className="rounded-2xl border bg-card shadow-card p-4 space-y-2">
+              <PreviewRow k="Property" v={project.address || project.name} />
+              <PreviewRow k="Repair total" v={fmtMoney(total)} highlight />
+              <PreviewRow k="Line items" v={`${lineItemCount}`} />
+              <PreviewRow k="Photos" v={`${project.photos.length}`} />
+              <PreviewRow k="Rooms" v={`${project.rooms.length}`} />
+            </div>
+            <div className="grid grid-cols-1 gap-2 mt-4">
+              <button
+                onClick={onDownload}
+                className="py-3 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2"
+              >
+                <Download className="h-5 w-5" /> Download ZIP
+              </button>
+              {canShare && (
+                <button
+                  onClick={onShare}
+                  className="py-3 rounded-xl border-2 border-primary text-primary font-semibold flex items-center justify-center gap-2"
+                >
+                  Share…
+                </button>
+              )}
+            </div>
+          </>
+        )}
+        {phase === "working" && (
+          <div className="py-8 text-center">
+            <Loader2 className="h-12 w-12 text-primary animate-spin mx-auto" />
+            <div className="text-lg font-semibold text-navy mt-4">Packaging your export…</div>
+            <div className="text-xs text-muted-foreground mt-1">Generating XLSX, bundling photos</div>
+            <div className="mt-5 h-2 rounded-full bg-secondary overflow-hidden max-w-xs mx-auto">
+              <div
+                className="h-full grad-hero rounded-full transition-all duration-200"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <div className="text-xs tabular-nums text-muted-foreground mt-2">{progress}%</div>
+          </div>
+        )}
+        {phase === "done" && (
+          <div className="py-8 text-center animate-fade-in">
+            <div className="mx-auto h-20 w-20 rounded-full bg-success/15 grid place-items-center">
+              <Check className="h-10 w-10 text-success animate-check-pop" strokeWidth={3.5} />
+            </div>
+            <div className="text-2xl font-bold text-navy mt-4">Export complete</div>
+            <div className="text-sm text-muted-foreground mt-1">Your ZIP is ready.</div>
+            <button
+              onClick={onClose}
+              className="mt-6 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-semibold"
+            >
+              Done
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PreviewRow({ k, v, highlight }: { k: string; v: string; highlight?: boolean }) {
+  return (
+    <div className="flex items-center justify-between text-sm">
+      <span className="text-muted-foreground">{k}</span>
+      <span className={`tabular-nums font-semibold ${highlight ? "text-xl text-navy" : "text-foreground"}`}>{v}</span>
     </div>
   );
 }
