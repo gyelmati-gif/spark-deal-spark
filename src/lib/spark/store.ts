@@ -83,6 +83,8 @@ type AppState = {
   setGlobalPrice: (itemId: string, price: number | null) => void;
   addPhoto: (photo: Omit<Photo, "id" | "createdAt">) => void;
   removePhoto: (id: string) => void;
+  reorderPhotos: (ids: string[]) => void;
+  updatePhotoCaption: (id: string, caption: string) => void;
   setDeal: (patch: Partial<DealInputs>) => void;
 };
 
@@ -344,6 +346,27 @@ export const useApp = create<AppState>()(
           if (!id || !s.projects[id]) return s;
           const p = { ...s.projects[id] };
           p.photos = p.photos.filter((x) => x.id !== pid);
+          p.updatedAt = Date.now();
+          return { projects: { ...s.projects, [id]: p } };
+        }),
+      reorderPhotos: (ids) =>
+        set((s) => {
+          const id = s.currentId;
+          if (!id || !s.projects[id]) return s;
+          const p = { ...s.projects[id] };
+          const map = new Map(p.photos.map((ph) => [ph.id, ph]));
+          const next = ids.map((i) => map.get(i)).filter(Boolean) as Photo[];
+          for (const ph of p.photos) if (!ids.includes(ph.id)) next.push(ph);
+          p.photos = next;
+          p.updatedAt = Date.now();
+          return { projects: { ...s.projects, [id]: p } };
+        }),
+      updatePhotoCaption: (pid, caption) =>
+        set((s) => {
+          const id = s.currentId;
+          if (!id || !s.projects[id]) return s;
+          const p = { ...s.projects[id] };
+          p.photos = p.photos.map((x) => (x.id === pid ? { ...x, caption } : x));
           p.updatedAt = Date.now();
           return { projects: { ...s.projects, [id]: p } };
         }),

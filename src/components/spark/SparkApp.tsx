@@ -27,7 +27,30 @@ import {
   ClipboardList,
   FolderPlus,
   ChevronRight,
+  GripVertical,
+  RefreshCw,
+  AlertTriangle,
+  Loader2,
+  ChevronLeft,
 } from "lucide-react";
+import {
+  DndContext,
+  PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  useSortable,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 type Tab = "estimate" | "deal" | "export" | "photos" | "review";
 
@@ -1124,20 +1147,136 @@ function ExportTab({ project }: { project: Project }) {
 }
 
 /* ----------------------------- Photos tab ----------------------------- */
+type UploadJob = {
+  id: string;
+  name: string;
+  file: File;
+  status: "queued" | "processing" | "done" | "error";
+  attempts: number;
+  error?: string;
+  previewUrl: string;
+};
+
+async function processWithRetry(
+  file: File,
+  onAttempt: (n: number) => void,
+  maxAttempts = 3,
+): Promise<string> {
+  let lastErr: unknown;
+  for (let i = 1; i <= maxAttempts; i++) {
+    onAttempt(i);
+    try {
+      const dataUrl = await compressImage(file);
+      if (!dataUrl || !dataUrl.startsWith("data:image")) throw new Error("Invalid image data");
+      return dataUrl;
+    } catch (e) {
+      lastErr = e;
+      // exponential backoff: 400, 800, 1600 ms
+      await new Promise((r) => setTimeout(r, 400 * Math.pow(2, i - 1)));
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error("Upload failed");
+}
+
 function PhotosTab({ project }: { project: Project }) {
   const addPhoto = useApp((s) => s.addPhoto);
   const removePhoto = useApp((s) => s.removePhoto);
+  const reorderPhotos = useApp((s) => s.reorderPhotos);
+  const updateCaption = useApp((s) => s.updatePhotoCaption);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
+  const [queue, setQueue] = useState<UploadJob[]>([]);
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const ids = useMemo(() => project.photos.map((p) => p.id), [project.photos]);
+
+  const runJob = async (jobId: string) => {
+    const job = queue.find((j) => j.id === jobId);
+    if (!job) return;
+    setQueue((q) => q.map((j) => (j.id === jobId ? { ...j, status: "processing", error: undefined } : j)));
+    try {
+      const dataUrl = await processWithRetry(job.file, (n) => {
+        setQueue((q) => q.map((j) => (j.id === jobId ? { ...j, attempts: n } : j)));
+      });
+      addPhoto({ dataUrl });
+      setQueue((q) => q.map((j) => (j.id === jobId ? { ...j, status: "done" } : j)));
+      // auto-clear successful jobs after a moment
+      setTimeout(() => {
+        setQueue((q) => {
+          const target = q.find((j) => j.id === jobId);
+          if (target) URL.revokeObjectURL(target.previewUrl);
+          return q.filter((j) => j.id !== jobId);
+        });
+      }, 1200);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Upload failed";
+      setQueue((q) => q.map((j) => (j.id === jobId ? { ...j, status: "error", error: msg } : j)));
+    }
+  };
+
+  const enqueue = (files: File[]) => {
+    const jobs: UploadJob[] = files.map((f) => ({
+      id: Math.random().toString(36).slice(2),
+      name: f.name || "photo.jpg",
+      file: f,
+      status: "queued",
+      attempts: 0,
+      previewUrl: URL.createObjectURL(f),
+    }));
+    setQueue((q) => [...q, ...jobs]);
+    // kick them off sequentially to avoid choking memory on mobile
+    (async () => {
+      for (const j of jobs) {
+        // eslint-disable-next-line no-await-in-loop
+        await runJob(j.id);
+      }
+    })();
+  };
+
+  const retry = (jobId: string) => {
+    setQueue((q) => q.map((j) => (j.id === jobId ? { ...j, status: "queued", attempts: 0, error: undefined } : j)));
+    void runJob(jobId);
+  };
+
+  const dismiss = (jobId: string) => {
+    setQueue((q) => {
+      const t = q.find((j) => j.id === jobId);
+      if (t) URL.revokeObjectURL(t.previewUrl);
+      return q.filter((j) => j.id !== jobId);
+    });
+  };
+
+  const onDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIdx = ids.indexOf(String(active.id));
+    const newIdx = ids.indexOf(String(over.id));
+    if (oldIdx < 0 || newIdx < 0) return;
+    reorderPhotos(arrayMove(ids, oldIdx, newIdx));
+  };
+
+  const uploading = queue.some((j) => j.status === "queued" || j.status === "processing");
+
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-navy">Photos</h2>
+      <div className="flex items-baseline justify-between">
+        <h2 className="text-2xl font-bold text-navy">Photos</h2>
+        <span className="text-xs text-muted-foreground">
+          {project.photos.length} photo{project.photos.length === 1 ? "" : "s"}
+        </span>
+      </div>
+
       <button
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
         className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
       >
-        <Camera className="h-5 w-5" />
+        {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" />}
         {uploading ? "Saving…" : "Capture / upload"}
       </button>
       <input
@@ -1147,39 +1286,234 @@ function PhotosTab({ project }: { project: Project }) {
         capture="environment"
         multiple
         className="hidden"
-        onChange={async (e) => {
+        onChange={(e) => {
           const files = Array.from(e.target.files ?? []);
-          setUploading(true);
-          try {
-            for (const f of files) {
-              const dataUrl = await compressImage(f);
-              addPhoto({ dataUrl });
-            }
-          } finally {
-            setUploading(false);
-            if (inputRef.current) inputRef.current.value = "";
-          }
+          if (files.length) enqueue(files);
+          if (inputRef.current) inputRef.current.value = "";
         }}
       />
-      {project.photos.length === 0 ? (
-        <div className="text-center text-sm text-muted-foreground py-12 border border-dashed rounded-2xl">
-          No photos yet
-        </div>
-      ) : (
-        <div className="grid grid-cols-3 gap-2">
-          {project.photos.map((p) => (
-            <div key={p.id} className="relative aspect-square rounded-lg overflow-hidden bg-secondary">
-              <img src={p.dataUrl} className="w-full h-full object-cover" alt="" />
-              <button
-                onClick={() => removePhoto(p.id)}
-                className="absolute top-1 right-1 h-7 w-7 grid place-items-center rounded-full bg-black/55 text-white"
-              >
-                <X className="h-4 w-4" />
-              </button>
+
+      {queue.length > 0 && (
+        <div className="space-y-2 rounded-2xl border border-border bg-card p-2">
+          {queue.map((j) => (
+            <div key={j.id} className="flex items-center gap-3 p-2 rounded-xl bg-secondary/40">
+              <img src={j.previewUrl} alt="" className="h-12 w-12 rounded-lg object-cover bg-muted" />
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium truncate">{j.name}</div>
+                <div className="text-xs text-muted-foreground flex items-center gap-1">
+                  {j.status === "queued" && <>Queued…</>}
+                  {j.status === "processing" && (
+                    <>
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Compressing{j.attempts > 1 ? ` · retry ${j.attempts - 1}` : ""}
+                    </>
+                  )}
+                  {j.status === "done" && <span className="text-green-600">Saved ✓</span>}
+                  {j.status === "error" && (
+                    <span className="text-destructive flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      {j.error || "Failed"}
+                    </span>
+                  )}
+                </div>
+              </div>
+              {j.status === "error" && (
+                <>
+                  <button
+                    onClick={() => retry(j.id)}
+                    className="h-8 px-3 rounded-lg bg-primary text-primary-foreground text-xs font-medium flex items-center gap-1"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    Retry
+                  </button>
+                  <button
+                    onClick={() => dismiss(j.id)}
+                    className="h-8 w-8 grid place-items-center rounded-lg text-muted-foreground"
+                    aria-label="Dismiss"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </>
+              )}
             </div>
           ))}
         </div>
       )}
+
+      {project.photos.length === 0 ? (
+        <div className="text-center text-sm text-muted-foreground py-12 border border-dashed rounded-2xl">
+          No photos yet — capture to start a per-property gallery
+        </div>
+      ) : (
+        <>
+          <p className="text-xs text-muted-foreground">Long-press a photo to drag and reorder.</p>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+            <SortableContext items={ids} strategy={rectSortingStrategy}>
+              <div className="grid grid-cols-3 gap-2">
+                {project.photos.map((p, idx) => (
+                  <SortablePhoto
+                    key={p.id}
+                    id={p.id}
+                    src={p.dataUrl}
+                    onOpen={() => setLightboxIdx(idx)}
+                    onRemove={() => removePhoto(p.id)}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        </>
+      )}
+
+      {lightboxIdx !== null && project.photos[lightboxIdx] && (
+        <Lightbox
+          photos={project.photos}
+          index={lightboxIdx}
+          onClose={() => setLightboxIdx(null)}
+          onChange={setLightboxIdx}
+          onCaption={(id, c) => updateCaption(id, c)}
+          onRemove={(id) => {
+            removePhoto(id);
+            setLightboxIdx((i) => {
+              if (i === null) return null;
+              const nextLen = project.photos.length - 1;
+              if (nextLen <= 0) return null;
+              return Math.min(i, nextLen - 1);
+            });
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function SortablePhoto({
+  id,
+  src,
+  onOpen,
+  onRemove,
+}: {
+  id: string;
+  src: string;
+  onOpen: () => void;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : undefined,
+  };
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`relative aspect-square rounded-lg overflow-hidden bg-secondary touch-none select-none ${
+        isDragging ? "ring-2 ring-primary shadow-lg" : ""
+      }`}
+    >
+      <button
+        type="button"
+        onClick={onOpen}
+        className="absolute inset-0 w-full h-full"
+        aria-label="Open photo"
+      >
+        <img src={src} className="w-full h-full object-cover pointer-events-none" alt="" />
+      </button>
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute top-1 left-1 h-7 w-7 grid place-items-center rounded-full bg-black/55 text-white cursor-grab active:cursor-grabbing"
+        aria-label="Drag to reorder"
+      >
+        <GripVertical className="h-4 w-4" />
+      </div>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove();
+        }}
+        className="absolute top-1 right-1 h-7 w-7 grid place-items-center rounded-full bg-black/55 text-white"
+        aria-label="Remove photo"
+      >
+        <X className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
+function Lightbox({
+  photos,
+  index,
+  onClose,
+  onChange,
+  onCaption,
+  onRemove,
+}: {
+  photos: Project["photos"];
+  index: number;
+  onClose: () => void;
+  onChange: (i: number) => void;
+  onCaption: (id: string, caption: string) => void;
+  onRemove: (id: string) => void;
+}) {
+  const photo = photos[index];
+  if (!photo) return null;
+  const prev = () => onChange(Math.max(0, index - 1));
+  const next = () => onChange(Math.min(photos.length - 1, index + 1));
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/90 flex flex-col"
+      onClick={onClose}
+    >
+      <div className="flex items-center justify-between p-3 text-white" onClick={(e) => e.stopPropagation()}>
+        <button onClick={onClose} className="h-9 w-9 grid place-items-center rounded-full bg-white/10">
+          <X className="h-5 w-5" />
+        </button>
+        <span className="text-sm">
+          {index + 1} / {photos.length}
+        </span>
+        <button
+          onClick={() => onRemove(photo.id)}
+          className="h-9 w-9 grid place-items-center rounded-full bg-white/10"
+          aria-label="Delete"
+        >
+          <Trash2 className="h-5 w-5" />
+        </button>
+      </div>
+      <div
+        className="flex-1 flex items-center justify-center px-2"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={prev}
+          disabled={index === 0}
+          className="h-10 w-10 grid place-items-center rounded-full bg-white/10 text-white disabled:opacity-30"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <img
+          src={photo.dataUrl}
+          alt=""
+          className="max-h-[70vh] max-w-full mx-2 object-contain rounded-lg"
+        />
+        <button
+          onClick={next}
+          disabled={index === photos.length - 1}
+          className="h-10 w-10 grid place-items-center rounded-full bg-white/10 text-white disabled:opacity-30"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </button>
+      </div>
+      <div className="p-3" onClick={(e) => e.stopPropagation()}>
+        <input
+          type="text"
+          defaultValue={photo.caption ?? ""}
+          onBlur={(e) => onCaption(photo.id, e.target.value)}
+          placeholder="Add a caption…"
+          className="w-full px-3 py-2 rounded-lg bg-white/10 text-white placeholder:text-white/50 text-sm"
+        />
+      </div>
     </div>
   );
 }
