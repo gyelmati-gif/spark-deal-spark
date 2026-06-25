@@ -469,6 +469,13 @@ function EstimateTab({ project, onGoDeal }: { project: Project; onGoDeal: () => 
   const [editAddr, setEditAddr] = useState(false);
   const [addAddr, setAddAddr] = useState(project.address);
   useEffect(() => setAddAddr(project.address), [project.address]);
+  const [quickScan, setQuickScan] = useState(false);
+  const [celebrated, setCelebrated] = useState(false);
+  const complete = totalGroups > 0 && reviewed === totalGroups;
+  useEffect(() => {
+    if (complete) setCelebrated(true);
+    else setCelebrated(false);
+  }, [complete]);
 
   return (
     <div className="space-y-5">
@@ -580,12 +587,39 @@ function EstimateTab({ project, onGoDeal }: { project: Project; onGoDeal: () => 
         activeId={activeRoomId}
         onChange={setActiveRoomId}
         rollups={rollups}
+        onQuickToggle={() => setQuickScan((v) => !v)}
       />
+
+      {/* Quick Scan + completion banner */}
+      <div className="flex items-center justify-between gap-3 -mt-1">
+        <button
+          onClick={() => setQuickScan((v) => !v)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold tracking-wide transition-all border ${
+            quickScan
+              ? "bg-[var(--amber)] text-white border-transparent shadow-card"
+              : "bg-card text-navy border-border hover:border-primary/50"
+          }`}
+          aria-pressed={quickScan}
+          title="Long-press or double-tap a room tab to toggle"
+        >
+          <Zap className="h-3.5 w-3.5" strokeWidth={2.5} />
+          {quickScan ? "Quick Scan ON" : "Quick Scan"}
+        </button>
+        {quickScan && (
+          <span className="text-[10px] text-muted-foreground">
+            All groups expanded · checkbox + name only
+          </span>
+        )}
+      </div>
+
+      {complete && celebrated && (
+        <CompletionBanner onExport={() => {}} />
+      )}
 
       {/* Groups for active room */}
       {activeRoom && (
         <div key={activeRoom.id} className="animate-fade-in">
-          <RoomGroups room={activeRoom} project={project} rollups={rollups} />
+          <RoomGroups room={activeRoom} project={project} rollups={rollups} quickScan={quickScan} />
         </div>
       )}
     </div>
