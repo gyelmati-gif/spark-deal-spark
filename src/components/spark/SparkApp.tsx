@@ -65,6 +65,83 @@ function useBounce(trigger: number) {
   return on;
 }
 
+/* ----------------------------- Welcome ----------------------------- */
+function WelcomeFlow() {
+  const [step, setStep] = useState<"intro" | "address">("intro");
+  const [addr, setAddr] = useState("");
+  const createProject = useApp((s) => s.createProject);
+  const setOnboarded = useApp((s) => s.setOnboarded);
+  const finish = () => {
+    const name = addr.trim() || "First Walkthrough";
+    const id = createProject(name);
+    if (addr.trim()) {
+      useApp.setState((s) => {
+        const p = s.projects[id];
+        if (!p) return s;
+        return { projects: { ...s.projects, [id]: { ...p, address: addr.trim() } } };
+      });
+    }
+    setOnboarded(true);
+  };
+  return (
+    <div className="min-h-[100dvh] bg-background flex items-center justify-center p-6">
+      <div className="w-full max-w-sm">
+        {step === "intro" ? (
+          <div className="text-center animate-fade-in">
+            <div className="mx-auto h-20 w-20 rounded-3xl shadow-lift grad-hero grid place-items-center mb-6 animate-glow-pulse">
+              <img src={sparkLogo} alt="Spark" className="h-12 w-12" />
+            </div>
+            <div className="text-[11px] tracking-[0.28em] font-semibold text-muted-foreground">
+              SPARK ESTIMATOR
+            </div>
+            <h1 className="grad-hero-number text-4xl font-black tracking-tight mt-2">
+              Know the deal
+              <br />before you leave.
+            </h1>
+            <p className="text-sm text-muted-foreground mt-3">
+              Walk the property one-handed. Get a live repair total and your Maximum
+              Allowable Offer in seconds.
+            </p>
+            <button
+              onClick={() => setStep("address")}
+              className="mt-8 w-full py-4 rounded-2xl grad-hero text-navy-foreground font-semibold deal-glow text-base"
+            >
+              Start your first walkthrough
+            </button>
+          </div>
+        ) : (
+          <div className="animate-fade-in">
+            <button
+              onClick={() => setStep("intro")}
+              className="text-sm text-muted-foreground flex items-center gap-1 mb-4"
+            >
+              <ChevronLeft className="h-4 w-4" /> Back
+            </button>
+            <h2 className="text-2xl font-bold text-navy">What's the property address?</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              You can change this later.
+            </p>
+            <input
+              autoFocus
+              value={addr}
+              onChange={(e) => setAddr(e.target.value)}
+              placeholder="123 Main St, Tulsa OK"
+              className="mt-5 w-full px-4 py-3.5 rounded-xl border bg-card text-base"
+              onKeyDown={(e) => { if (e.key === "Enter") finish(); }}
+            />
+            <button
+              onClick={finish}
+              className="mt-4 w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold"
+            >
+              {addr.trim() ? "Start walkthrough" : "Skip for now"}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function useCountUp(target: number, duration = 500) {
   const [value, setValue] = useState(target);
   const fromRef = useRef(target);
