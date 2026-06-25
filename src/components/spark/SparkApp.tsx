@@ -7,6 +7,7 @@ import {
 } from "@/lib/spark/catalog";
 import { rollupProject, computeDeal, fmtMoney, fmtMoney2 } from "@/lib/spark/calc";
 import { exportProjectZip, compressImage } from "@/lib/spark/export";
+import { ocrSerial, type OcrCandidate } from "@/lib/spark/ocr";
 import sparkLogo from "@/assets/spark-logo.png";
 import {
   Plus,
