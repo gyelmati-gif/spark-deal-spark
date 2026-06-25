@@ -866,16 +866,22 @@ function LineItemRow({
   useEffect(() => setPriceInput(price.toString()), [price]);
 
   return (
-    <div className="px-4 py-3">
+    <div
+      className={`px-4 py-3 border-l-[3px] transition-colors duration-300 ${
+        checked ? "border-primary bg-primary/[0.04]" : "border-transparent"
+      }`}
+    >
       <div className="flex items-start gap-3">
         <button
           onClick={() => toggleItem(room.id, groupId, itemId)}
-          className={`mt-0.5 h-5 w-5 rounded-md border-2 grid place-items-center shrink-0 transition-colors ${
-            checked ? "bg-primary border-primary" : "border-muted-foreground/40"
+          className={`mt-0.5 h-6 w-6 rounded-md border-2 grid place-items-center shrink-0 transition-all duration-200 ${
+            checked ? "bg-primary border-primary scale-100" : "border-muted-foreground/40 hover:border-primary/60"
           }`}
           aria-label={checked ? "Uncheck" : "Check"}
         >
-          {checked && <Check className="h-3.5 w-3.5 text-primary-foreground" strokeWidth={3} />}
+          {checked && (
+            <Check className="h-4 w-4 text-primary-foreground animate-check-pop" strokeWidth={3.5} />
+          )}
         </button>
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2">
