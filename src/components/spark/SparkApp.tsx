@@ -1093,17 +1093,62 @@ function DealTab({ project }: { project: Project }) {
   const setDeal = useApp((s) => s.setDeal);
   const d = project.deal;
   const deal = useMemo(() => computeDeal(total, d), [total, d]);
+  const animatedMao = useCountUp(Math.max(0, deal.mao));
+  const maoBounce = useBounce(Math.max(0, deal.mao));
+  const [copied, setCopied] = useState(false);
+  const verdictClass =
+    deal.verdict === "strong"
+      ? "verdict-strong"
+      : deal.verdict === "thin"
+        ? "verdict-thin"
+        : deal.verdict === "pass"
+          ? "verdict-pass"
+          : "verdict-none";
+  const verdictHeadline =
+    deal.verdict === "strong"
+      ? "STRONG DEAL"
+      : deal.verdict === "thin"
+        ? "THIN MARGIN"
+        : deal.verdict === "pass"
+          ? "PASS"
+          : "NEEDS ARV";
+  const targetMargin = d.targetMargin || 20;
+  const currentMargin = deal.marginOnArv ?? 0;
+  const gaugePct = Math.max(0, Math.min(150, (currentMargin / targetMargin) * 100));
+  const copyMao = async () => {
+    try {
+      await navigator.clipboard.writeText(fmtMoney(Math.max(0, deal.mao)));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch {}
+  };
 
   return (
     <div className="space-y-5">
-      <section className="rounded-2xl shadow-lift grad-hero text-navy-foreground p-5">
-        <div className="text-[10px] tracking-[0.22em] font-semibold opacity-75">
+      {/* Verdict banner */}
+      <section className={`rounded-2xl p-4 shadow-lift ${verdictClass}`}>
+        <div className="text-[10px] tracking-[0.28em] font-semibold opacity-80">VERDICT</div>
+        <div className="text-4xl font-black tracking-tight mt-0.5">{verdictHeadline}</div>
+        <div className="text-sm opacity-90 mt-1">{deal.verdictLabel}</div>
+      </section>
+
+      {/* MAO hero */}
+      <section className="rounded-2xl shadow-lift hero-surface border border-border/60 p-5 relative overflow-hidden deal-glow">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-24 -right-16 h-56 w-56 rounded-full blur-3xl opacity-40"
+          style={{ background: "radial-gradient(circle, var(--amber), transparent 70%)" }}
+        />
+        <div className="text-[10px] tracking-[0.22em] font-semibold text-muted-foreground">
           MAXIMUM ALLOWABLE OFFER
         </div>
-        <div className="text-5xl font-black tabular-nums mt-1">
-          {fmtMoney(Math.max(0, deal.mao))}
+        <div
+          className={`grad-hero-number font-black tabular-nums tracking-tighter leading-none mt-1 origin-left ${maoBounce ? "animate-spark-bounce" : ""}`}
+          style={{ fontSize: "clamp(3.5rem, 14vw, 5rem)" }}
+        >
+          {fmtMoney(animatedMao)}
         </div>
-        <div className="mt-1 text-sm opacity-80">
+        <div className="mt-2 text-sm text-muted-foreground">
           using {d.rule === "margin" ? `${d.targetMargin}% target margin` : "the 70% rule"}
         </div>
         <div className="mt-3 flex gap-2">
@@ -1118,18 +1163,51 @@ function DealTab({ project }: { project: Project }) {
             label="70% rule"
           />
         </div>
-        <div className="mt-4 flex items-center justify-between">
-          <div>
-            <div className="text-[10px] tracking-[0.18em] opacity-70 font-semibold">VERDICT</div>
-            <div className="text-lg font-bold">{deal.verdictLabel}</div>
-          </div>
-          <VerdictBadge verdict={deal.verdict} label={deal.verdictLabel} />
-        </div>
+        <button
+          onClick={copyMao}
+          className="mt-4 w-full py-2.5 rounded-xl bg-navy text-navy-foreground font-semibold text-sm flex items-center justify-center gap-2 transition-colors"
+        >
+          {copied ? <Check className="h-4 w-4" /> : <ClipboardList className="h-4 w-4" />}
+          {copied ? "Copied!" : "Copy MAO to clipboard"}
+        </button>
       </section>
 
-      <div className="text-center text-xs text-muted-foreground italic">
-        “The most important number in the deal.”
-      </div>
+      {/* Margin gauge */}
+      {d.purchasePrice > 0 && d.arv > 0 && (
+        <section className="rounded-2xl border bg-card shadow-card p-4">
+          <div className="flex items-baseline justify-between mb-2">
+            <div className="text-[10px] tracking-[0.18em] text-muted-foreground font-semibold">
+              MARGIN VS TARGET
+            </div>
+            <div className="tabular-nums text-sm">
+              <span className="font-bold text-navy">{currentMargin.toFixed(1)}%</span>
+              <span className="text-muted-foreground"> / {targetMargin}%</span>
+            </div>
+          </div>
+          <div className="relative h-3 rounded-full bg-secondary overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${
+                deal.verdict === "strong"
+                  ? "bg-success"
+                  : deal.verdict === "thin"
+                    ? "bg-warning"
+                    : "bg-danger"
+              }`}
+              style={{ width: `${Math.min(100, gaugePct)}%` }}
+            />
+            <div
+              className="absolute top-0 bottom-0 w-0.5 bg-navy"
+              style={{ left: "66.66%" }}
+              aria-label="Target"
+            />
+          </div>
+          <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+            <span>0%</span>
+            <span>Target</span>
+            <span>{Math.round(targetMargin * 1.5)}%</span>
+          </div>
+        </section>
+      )}
 
       <section className="rounded-2xl border bg-card shadow-card p-4 space-y-4">
         <DealInput
@@ -1158,6 +1236,34 @@ function DealTab({ project }: { project: Project }) {
         </div>
       </section>
 
+      {/* Visual equation */}
+      {d.arv > 0 && (
+        <section className="rounded-2xl border bg-card shadow-card p-4">
+          <div className="text-[10px] tracking-[0.18em] text-muted-foreground font-semibold mb-3">
+            THE EQUATION
+          </div>
+          <div className="grid grid-cols-[1fr_auto_1fr_auto_1fr] gap-1.5 items-center text-center">
+            <EqCell label="ARV" value={fmtMoney(d.arv)} tone="navy" />
+            <EqOp>−</EqOp>
+            <EqCell label="Repairs" value={fmtMoney(total)} tone="muted" />
+            <EqOp>−</EqOp>
+            <EqCell label="Holding" value={fmtMoney(deal.holdingCost)} tone="muted" />
+          </div>
+          <div className="my-2 grid grid-cols-[1fr_auto_1fr] gap-1.5 items-center text-center">
+            <div />
+            <EqOp>=</EqOp>
+            <EqCell
+              label={d.purchasePrice > 0 ? "Profit (after purchase)" : "MAO"}
+              value={fmtMoney(
+                d.purchasePrice > 0 ? deal.profit ?? 0 : Math.max(0, deal.mao),
+              )}
+              tone="amber"
+              big
+            />
+          </div>
+        </section>
+      )}
+
       <section className="rounded-2xl border bg-card shadow-card p-4">
         <div className="text-[10px] tracking-[0.18em] text-muted-foreground font-semibold mb-2">
           BREAKDOWN
@@ -1177,6 +1283,26 @@ function DealTab({ project }: { project: Project }) {
       </section>
     </div>
   );
+}
+
+function EqCell({
+  label, value, tone, big,
+}: { label: string; value: string; tone: "navy" | "muted" | "amber"; big?: boolean }) {
+  const cls =
+    tone === "amber"
+      ? "bg-amber/15 text-amber-foreground border-amber/40"
+      : tone === "navy"
+        ? "bg-navy text-navy-foreground border-navy"
+        : "bg-secondary text-foreground border-border";
+  return (
+    <div className={`rounded-xl border px-2 py-2 ${cls}`}>
+      <div className="text-[9px] tracking-wider opacity-70 font-semibold uppercase">{label}</div>
+      <div className={`tabular-nums font-bold ${big ? "text-lg" : "text-sm"}`}>{value}</div>
+    </div>
+  );
+}
+function EqOp({ children }: { children: React.ReactNode }) {
+  return <div className="text-xl font-bold text-muted-foreground px-0.5">{children}</div>;
 }
 
 function RuleChip({
