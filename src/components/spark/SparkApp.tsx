@@ -405,6 +405,7 @@ function EstimateTab({ project, onGoDeal }: { project: Project; onGoDeal: () => 
   );
   const deal = useMemo(() => computeDeal(total, project.deal), [total, project.deal]);
   const animatedTotal = useCountUp(total);
+  const totalBounce = useBounce(total);
   const dealValue =
     project.deal.arv > 0
       ? project.deal.purchasePrice > 0
@@ -435,7 +436,9 @@ function EstimateTab({ project, onGoDeal }: { project: Project; onGoDeal: () => 
         <div className="text-[10px] tracking-[0.22em] font-semibold text-muted-foreground">
           REPAIR ESTIMATE
         </div>
-        <div className="grad-hero-number text-6xl sm:text-7xl font-black tracking-tighter tabular-nums mt-1 leading-none drop-shadow-sm">
+        <div
+          className={`grad-hero-number text-6xl sm:text-7xl font-black tracking-tighter tabular-nums mt-1 leading-none drop-shadow-sm origin-left ${totalBounce ? "animate-spark-bounce" : ""}`}
+        >
           {fmtMoney(animatedTotal)}
         </div>
         <div className="mt-2 flex items-center gap-2">
