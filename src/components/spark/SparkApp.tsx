@@ -1116,6 +1116,7 @@ function LineItemRow({
             </div>
           )}
         </div>
+        )}
         <button
           onClick={() => {
             if (isCustom) removeCustomItem(room.id, groupId, itemId);
