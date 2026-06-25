@@ -249,6 +249,9 @@ function AppInner() {
         {tab === "review" && <ReviewTab project={project} />}
       </main>
       <BottomNav tab={tab} setTab={setTab} />
+      <div className="pointer-events-none fixed bottom-1 left-0 right-0 z-10 text-center text-[10px] tracking-[0.18em] font-semibold text-muted-foreground/60 uppercase">
+        Built for Spark Homes
+      </div>
     </div>
   );
 }
