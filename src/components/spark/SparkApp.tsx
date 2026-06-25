@@ -494,26 +494,32 @@ function EstimateTab({ project, onGoDeal }: { project: Project; onGoDeal: () => 
                 autoFocus
                 value={addAddr}
                 onChange={(e) => setAddAddr(e.target.value)}
-                className="flex-1 px-2 py-1 rounded border text-sm"
-                placeholder="Property address"
-              />
-              <button
-                onClick={() => {
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    useApp.getState().setAddress(addAddr);
+                    setEditAddr(false);
+                  }
+                  if (e.key === "Escape") {
+                    setAddAddr(project.address);
+                    setEditAddr(false);
+                  }
+                }}
+                onBlur={() => {
                   useApp.getState().setAddress(addAddr);
                   setEditAddr(false);
                 }}
-                className="text-xs px-2 py-1 rounded bg-primary text-primary-foreground"
-              >
-                Save
-              </button>
+                className="flex-1 px-3 py-1.5 rounded-lg border border-primary/40 bg-background text-sm font-medium text-navy outline-none ring-2 ring-primary/20"
+                placeholder="Property address"
+              />
             </>
           ) : (
             <button
               onClick={() => setEditAddr(true)}
-              className="flex items-center gap-1.5 text-sm text-muted-foreground"
+              className="group flex items-center gap-1.5 text-sm font-medium text-foreground/80 hover:text-navy transition-colors max-w-full"
+              aria-label="Edit property address"
             >
               <span className="truncate">{project.address || "Add property address"}</span>
-              <Pencil className="h-3.5 w-3.5" />
+              <Pencil className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
             </button>
           )}
         </div>
@@ -1806,8 +1812,15 @@ function PhotosTab({ project }: { project: Project }) {
       )}
 
       {project.photos.length === 0 ? (
-        <div className="text-center text-sm text-muted-foreground py-12 border border-dashed rounded-2xl">
-          No photos yet — capture to start a per-property gallery
+        <div className="text-center py-14 px-6 border border-dashed border-border rounded-2xl card-surface">
+          <div className="mx-auto h-20 w-20 rounded-2xl grad-hero shadow-lift flex items-center justify-center mb-4 relative">
+            <Camera className="h-9 w-9 text-white" strokeWidth={1.8} />
+            <span className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-[var(--amber)] text-white text-xs font-black flex items-center justify-center shadow-card">+</span>
+          </div>
+          <h3 className="text-base font-bold text-navy mb-1">No photos yet</h3>
+          <p className="text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">
+            Tap any item to add photos during your walkthrough — they'll show up here in a per-property gallery.
+          </p>
         </div>
       ) : (
         <>
