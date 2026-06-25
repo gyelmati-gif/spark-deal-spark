@@ -670,13 +670,28 @@ function RoomTabs({
   activeId,
   onChange,
   rollups,
+  onQuickToggle,
 }: {
   rooms: Room[];
   activeId: string;
   onChange: (id: string) => void;
   rollups: ReturnType<typeof rollupProject>["rollups"];
+  onQuickToggle?: () => void;
 }) {
   const [adding, setAdding] = useState(false);
+  const lastTapRef = useRef<{ id: string; t: number }>({ id: "", t: 0 });
+  const lpTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lpFired = useRef(false);
+  const handleTap = (id: string) => {
+    const now = Date.now();
+    if (lastTapRef.current.id === id && now - lastTapRef.current.t < 320) {
+      onQuickToggle?.();
+      lastTapRef.current = { id: "", t: 0 };
+      return true;
+    }
+    lastTapRef.current = { id, t: now };
+    return false;
+  };
   return (
     <div className="-mx-4 px-4">
       <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 pt-0.5">
@@ -688,7 +703,21 @@ function RoomTabs({
           return (
             <button
               key={r.id}
-              onClick={() => onChange(r.id)}
+              onClick={() => {
+                if (lpFired.current) { lpFired.current = false; return; }
+                if (handleTap(r.id)) return;
+                onChange(r.id);
+              }}
+              onPointerDown={() => {
+                lpFired.current = false;
+                if (lpTimer.current) clearTimeout(lpTimer.current);
+                lpTimer.current = setTimeout(() => {
+                  lpFired.current = true;
+                  onQuickToggle?.();
+                }, 500);
+              }}
+              onPointerUp={() => { if (lpTimer.current) clearTimeout(lpTimer.current); }}
+              onPointerLeave={() => { if (lpTimer.current) clearTimeout(lpTimer.current); }}
               className={`shrink-0 px-4 py-2 text-sm font-semibold rounded-full transition-all flex items-center gap-1.5 ${
                 active
                   ? "bg-navy text-navy-foreground shadow-lift"
@@ -759,10 +788,12 @@ function RoomGroups({
   room,
   project,
   rollups,
+  quickScan,
 }: {
   room: Room;
   project: Project;
   rollups: ReturnType<typeof rollupProject>["rollups"];
+  quickScan?: boolean;
 }) {
   const tpl = ROOM_TEMPLATES[room.type];
   const removeRoom = useApp((s) => s.removeRoom);
@@ -815,7 +846,7 @@ function RoomGroups({
         const rollup = rollups.find(
           (r) => r.roomId === room.id && r.groupId === g.id,
         )!;
-        return <GroupCard key={g.id} room={room} groupId={g.id} groupName={g.name} rollup={rollup} project={project} itemIds={g.itemIds} />;
+        return <GroupCard key={g.id} room={room} groupId={g.id} groupName={g.name} rollup={rollup} project={project} itemIds={g.itemIds} quickScan={quickScan} />;
       })}
     </section>
   );
