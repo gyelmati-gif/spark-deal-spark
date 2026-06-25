@@ -1572,3 +1572,110 @@ function ReviewTab({ project }: { project: Project }) {
     </div>
   );
 }
+
+// ===========================================================
+// SerialScanner — OCR a data-plate photo into a serial number
+// ===========================================================
+function SerialScanner({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [candidates, setCandidates] = useState<OcrCandidate[]>([]);
+
+  const onPick = async (file: File | undefined | null) => {
+    if (!file) return;
+    setError(null);
+    setCandidates([]);
+    setBusy(true);
+    try {
+      const { candidates } = await ocrSerial(file);
+      if (candidates.length === 0) {
+        setError("No serial detected. Try a sharper, closer photo.");
+      } else if (candidates.length === 1 || candidates[0].score >= candidates[1].score + 30) {
+        onChange(candidates[0].value);
+        setCandidates(candidates.slice(1));
+      } else {
+        setCandidates(candidates);
+      }
+    } catch (e) {
+      setError("Scan failed. Type the serial manually.");
+    } finally {
+      setBusy(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  return (
+    <div className="flex-1 min-w-0">
+      <div className="flex items-center gap-1.5">
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Serial #"
+          className="flex-1 min-w-0 px-2 py-1 rounded border text-xs tabular-nums"
+        />
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          disabled={busy}
+          aria-label="Scan serial number from photo"
+          className="h-7 px-2 rounded border bg-background hover:bg-muted active:bg-muted/70 disabled:opacity-50 grid place-items-center"
+        >
+          {busy ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+          ) : (
+            <Camera className="h-3.5 w-3.5 text-primary" />
+          )}
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => onPick(e.target.files?.[0])}
+        />
+      </div>
+      {busy && (
+        <div className="mt-1 text-[10px] text-muted-foreground">Reading data plate…</div>
+      )}
+      {error && (
+        <div className="mt-1 text-[10px] text-danger">{error}</div>
+      )}
+      {candidates.length > 0 && (
+        <div className="mt-1.5 flex flex-wrap items-center gap-1">
+          <span className="text-[10px] text-muted-foreground mr-0.5">
+            {value ? "Other:" : "Pick:"}
+          </span>
+          {candidates.map((c) => (
+            <button
+              key={c.value}
+              type="button"
+              onClick={() => {
+                onChange(c.value);
+                setCandidates([]);
+              }}
+              className="px-1.5 py-0.5 rounded border bg-background text-[10px] tabular-nums hover:bg-muted"
+            >
+              {c.value}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => setCandidates([])}
+            className="text-[10px] text-muted-foreground px-1"
+            aria-label="Dismiss suggestions"
+          >
+            ×
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
