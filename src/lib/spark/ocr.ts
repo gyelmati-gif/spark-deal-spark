@@ -40,9 +40,9 @@ export interface OcrCandidate {
 // Matches with or without spacing/punctuation: "S/N:", "SN#", "SERIAL NO.", "SER#", "SERIAL:", etc.
 // Also handles common OCR confusions like "5/N" or "S/M".
 const SERIAL_LABEL_RE =
-  /(?:\b|^)(?:S\s*[\/\\|]\s*[NM]|5\s*[\/\\|]\s*N|S\s*N|SER(?:IAL)?)\s*(?:NUMBER|NUM|NBR|NO|N|#)?\s*[:#=.\-]?\s*([A-Z0-9][A-Z0-9 \-\/]{3,28}[A-Z0-9])/gi;
+  /(?:\b|^)(?:S\s*[\/\\|]\s*[NM]|5\s*[\/\\|]\s*N|S\s*N|SER(?:IAL)?)[.\s]*(?:NUMBER|NUM|NBR|NO|N|#)?[.\s]*[:#=\-]?\s*([A-Z0-9](?:[A-Z0-9\-\/]|\s(?!\s)){3,22}[A-Z0-9])/gi;
 const MODEL_LABEL_RE =
-  /(?:\b|^)(?:MOD(?:EL)?|M\s*\/?\s*N|TYPE|CAT(?:ALOG)?)\s*(?:NUMBER|NUM|NO|N|#)?\s*[:#=.\-]?\s*([A-Z0-9][A-Z0-9 \-\/]{3,28}[A-Z0-9])/gi;
+  /(?:\b|^)(?:MOD(?:EL)?|M\s*\/?\s*N|TYPE|CAT(?:ALOG)?)[.\s]*(?:NUMBER|NUM|NO|N|#)?[.\s]*[:#=\-]?\s*([A-Z0-9](?:[A-Z0-9\-\/]|\s(?!\s)){3,22}[A-Z0-9])/gi;
 // Generic plate-like token. Allows internal single spaces so "AB-1234 5678" stays whole;
 // we collapse spaces later when normalizing.
 const TOKEN_RE = /[A-Z0-9](?:[A-Z0-9\-\/]| (?=[A-Z0-9])){4,28}[A-Z0-9]/g;
@@ -58,11 +58,23 @@ const STOPWORDS = new Set([
   "USA", "CHINA", "MEXICO", "KOREA", "JAPAN", "CANADA",
 ]);
 
+// Label words we'll strip if they end up glued to a captured value
+// ("ZP9988AAMODEL" → "ZP9988AA").
+const TRAILING_LABEL_RE =
+  /(MODEL|SERIAL|NUMBER|TYPE|MFG|MFD|DATE|VOLTS?|HERTZ|HZ|AMPS?|PHASE|WATTS?)+$/;
+
 function normalize(raw: string): string {
   // Collapse internal spaces, strip leading/trailing separators.
-  return raw
+  let v = raw
     .replace(/\s+/g, "")
     .replace(/^[-\/.]+|[-\/.]+$/g, "");
+  // Strip trailing label words that the regex may have absorbed.
+  for (let i = 0; i < 2; i++) {
+    const next = v.replace(TRAILING_LABEL_RE, "").replace(/[-\/.]+$/g, "");
+    if (next === v) break;
+    v = next;
+  }
+  return v;
 }
 
 function scoreToken(t: string): number {
@@ -129,6 +141,9 @@ export function parseSerialCandidates(rawText: string): OcrCandidate[] {
     if (v.length < 6) continue;
     if (STOPWORDS.has(v)) continue;
     if (found.has(v)) continue;
+    // Unlabeled candidates must mix letters & digits — pure-alpha "tokens"
+    // are almost always plate vocabulary, not serials.
+    if (!/\d/.test(v) || !/[A-Z]/.test(v)) continue;
     const score = scoreToken(v);
     if (score < 10) continue;
     found.set(v, { value: v, score, reason: "token" });
