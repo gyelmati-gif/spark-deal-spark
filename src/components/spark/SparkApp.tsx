@@ -111,15 +111,19 @@ function AppInner() {
   const projects = useApp((s) => s.projects);
   const currentId = useApp((s) => s.currentId);
   const createProject = useApp((s) => s.createProject);
+  const hasOnboarded = useApp((s) => s.hasOnboarded);
   const [tab, setTab] = useState<Tab>("estimate");
 
   // Ensure at least one project
   useEffect(() => {
+    if (!hasOnboarded) return;
     if (!currentId || !projects[currentId]) {
       if (Object.keys(projects).length === 0) createProject("123 Main St");
       else useApp.getState().selectProject(Object.keys(projects)[0]);
     }
-  }, [currentId, projects, createProject]);
+  }, [currentId, projects, createProject, hasOnboarded]);
+
+  if (!hasOnboarded) return <WelcomeFlow />;
 
   const project = currentId ? projects[currentId] : null;
   if (!project) return null;
