@@ -173,15 +173,48 @@ type Tab = "estimate" | "deal" | "export" | "photos" | "review";
 
 export function SparkApp() {
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 850);
+    return () => clearTimeout(t);
+  }, []);
   if (!mounted) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-muted-foreground text-sm">Loading Spark Estimator…</div>
-      </div>
-    );
+    return <SplashScreen />;
   }
   return <AppInner />;
+}
+
+function SplashScreen() {
+  return (
+    <div className="min-h-[100dvh] grad-navy flex flex-col items-center justify-center text-navy-foreground relative overflow-hidden">
+      <div
+        aria-hidden
+        className="absolute inset-0 opacity-40"
+        style={{
+          background:
+            "radial-gradient(ellipse at 30% 20%, oklch(0.55 0.22 264 / 0.5), transparent 60%), radial-gradient(ellipse at 80% 90%, oklch(0.78 0.16 70 / 0.35), transparent 55%)",
+        }}
+      />
+      <div className="relative grid place-items-center">
+        <div className="absolute h-32 w-32 rounded-3xl border border-white/30 animate-splash-ring" />
+        <div
+          className="absolute h-32 w-32 rounded-3xl border border-white/20 animate-splash-ring"
+          style={{ animationDelay: "0.6s" }}
+        />
+        <img
+          src={sparkLogo}
+          alt="Spark Estimator"
+          className="relative h-20 w-20 rounded-3xl shadow-float animate-splash-pulse"
+        />
+      </div>
+      <div className="relative mt-8 text-[10px] tracking-[0.4em] font-bold opacity-80">
+        SPARK ESTIMATOR
+      </div>
+      <div className="relative mt-2 text-xs opacity-60">Tulsa-market repair pricing</div>
+      <div className="relative mt-6 h-1 w-32 overflow-hidden rounded-full bg-white/15">
+        <div className="h-full w-1/3 bg-white/70 rounded-full animate-[spark-shimmer_1.2s_ease-in-out_infinite]" />
+      </div>
+    </div>
+  );
 }
 
 function AppInner() {
