@@ -117,7 +117,7 @@ function WelcomeFlow() {
             >
               <ChevronLeft className="h-4 w-4" /> Back
             </button>
-            <h2 className="text-2xl font-bold text-navy">What's the property address?</h2>
+            <h2 className="text-3xl font-black text-navy tracking-tight">What's the property address?</h2>
             <p className="text-sm text-muted-foreground mt-1">
               You can change this later.
             </p>
@@ -303,7 +303,7 @@ function ProjectsSheet({ onClose }: { onClose: () => void }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-navy">Walkthroughs</h2>
+          <h2 className="text-xl font-bold text-navy tracking-tight">Walkthroughs</h2>
           <button onClick={onClose} className="text-muted-foreground p-1">
             <X className="h-5 w-5" />
           </button>
@@ -1458,7 +1458,7 @@ function ExportTab({ project }: { project: Project }) {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-navy">Export</h2>
+      <h2 className="text-3xl font-black text-navy tracking-tight">Export</h2>
       <section className="rounded-2xl border bg-card shadow-card p-4">
         <div className="text-[10px] tracking-[0.18em] text-muted-foreground font-semibold">
           SUMMARY
@@ -1536,7 +1536,7 @@ function ExportSheet({
         {phase === "preview" && (
           <>
             <div className="flex items-center justify-between mb-1">
-              <h3 className="text-lg font-bold text-navy">Export preview</h3>
+              <h3 className="text-xl font-black text-navy tracking-tight">Export preview</h3>
               <button onClick={onClose} className="p-1 text-muted-foreground"><X className="h-5 w-5" /></button>
             </div>
             <p className="text-xs text-muted-foreground mb-4">Here's what will be in your ZIP:</p>
@@ -1727,7 +1727,7 @@ function PhotosTab({ project }: { project: Project }) {
   return (
     <div className="space-y-4">
       <div className="flex items-baseline justify-between">
-        <h2 className="text-2xl font-bold text-navy">Photos</h2>
+        <h2 className="text-3xl font-black text-navy tracking-tight">Photos</h2>
         <span className="text-xs text-muted-foreground">
           {project.photos.length} photo{project.photos.length === 1 ? "" : "s"}
         </span>
@@ -1989,7 +1989,7 @@ function ReviewTab({ project }: { project: Project }) {
   );
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-navy">Review</h2>
+      <h2 className="text-3xl font-black text-navy tracking-tight">Review</h2>
       <div className="grid grid-cols-3 gap-2">
         <StatCard label="Total" value={fmtMoney(total)} />
         <StatCard label="Groups" value={`${reviewed}/${totalGroups}`} />
