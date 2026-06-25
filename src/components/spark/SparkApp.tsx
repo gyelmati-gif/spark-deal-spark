@@ -755,8 +755,8 @@ function GroupCard({
           <div className="flex items-center gap-2">
             <div className="font-semibold text-navy">{groupName}</div>
             {rollup.reviewed && (
-              <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
-                <Check className="h-3 w-3" /> Reviewed
+              <span className="inline-flex items-center gap-0.5 text-[10px] px-2 py-0.5 rounded-full bg-success/15 text-success font-bold tracking-wide animate-scale-in">
+                <Check className="h-3 w-3" strokeWidth={3} /> REVIEWED
               </span>
             )}
           </div>
