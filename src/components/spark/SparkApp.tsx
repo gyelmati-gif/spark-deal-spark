@@ -581,35 +581,45 @@ function RoomTabs({
   rooms,
   activeId,
   onChange,
+  rollups,
 }: {
   rooms: Room[];
   activeId: string;
   onChange: (id: string) => void;
+  rollups: ReturnType<typeof rollupProject>["rollups"];
 }) {
   const [adding, setAdding] = useState(false);
   return (
     <div className="-mx-4 px-4">
-      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 pt-0.5">
         {rooms.map((r) => {
           const active = r.id === activeId;
+          const roomRollups = rollups.filter((x) => x.roomId === r.id);
+          const allReviewed =
+            roomRollups.length > 0 && roomRollups.every((x) => x.reviewed);
           return (
             <button
               key={r.id}
               onClick={() => onChange(r.id)}
-              className={`shrink-0 px-3 py-2 text-sm font-medium relative ${
-                active ? "text-navy" : "text-muted-foreground"
+              className={`shrink-0 px-4 py-2 text-sm font-semibold rounded-full transition-all flex items-center gap-1.5 ${
+                active
+                  ? "bg-navy text-navy-foreground shadow-lift"
+                  : "bg-secondary/60 text-muted-foreground hover:text-navy"
               }`}
             >
-              {r.label}
-              {active && (
-                <div className="absolute left-2 right-2 -bottom-0.5 h-0.5 rounded-full grad-amber" />
+              <span>{r.label}</span>
+              {allReviewed && (
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${active ? "bg-success" : "bg-success"}`}
+                  aria-label="All reviewed"
+                />
               )}
             </button>
           );
         })}
         <button
           onClick={() => setAdding(true)}
-          className="shrink-0 px-3 py-2 text-sm font-medium text-primary flex items-center gap-1"
+          className="shrink-0 px-3 py-2 text-sm font-semibold text-primary flex items-center gap-1 rounded-full border-2 border-dashed border-primary/40 hover:bg-primary/5"
         >
           <Plus className="h-4 w-4" /> Room
         </button>
