@@ -53,6 +53,18 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+function useBounce(trigger: number) {
+  const [on, setOn] = useState(false);
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) { first.current = false; return; }
+    setOn(true);
+    const t = setTimeout(() => setOn(false), 450);
+    return () => clearTimeout(t);
+  }, [trigger]);
+  return on;
+}
+
 function useCountUp(target: number, duration = 500) {
   const [value, setValue] = useState(target);
   const fromRef = useRef(target);
