@@ -301,3 +301,18 @@
   background: linear-gradient(135deg, oklch(0.5 0.04 255), oklch(0.34 0.06 252));
   color: white;
 }
+
+@keyframes spark-confetti-fall {
+  0% { transform: translate3d(0,-20px,0) rotate(0deg); opacity: 0; }
+  10% { opacity: 1; }
+  100% { transform: translate3d(var(--cx,0px), 120vh, 0) rotate(var(--cr,720deg)); opacity: 0; }
+}
+@utility confetti-piece {
+  position: absolute;
+  top: -10px;
+  width: 8px;
+  height: 14px;
+  border-radius: 2px;
+  animation: spark-confetti-fall linear forwards;
+  will-change: transform, opacity;
+}

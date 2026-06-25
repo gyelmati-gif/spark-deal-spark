@@ -33,6 +33,8 @@ import {
   AlertTriangle,
   Loader2,
   ChevronLeft,
+  Zap,
+  PartyPopper,
 } from "lucide-react";
 import {
   DndContext,
@@ -469,6 +471,13 @@ function EstimateTab({ project, onGoDeal }: { project: Project; onGoDeal: () => 
   const [editAddr, setEditAddr] = useState(false);
   const [addAddr, setAddAddr] = useState(project.address);
   useEffect(() => setAddAddr(project.address), [project.address]);
+  const [quickScan, setQuickScan] = useState(false);
+  const [celebrated, setCelebrated] = useState(false);
+  const complete = totalGroups > 0 && reviewed === totalGroups;
+  useEffect(() => {
+    if (complete) setCelebrated(true);
+    else setCelebrated(false);
+  }, [complete]);
 
   return (
     <div className="space-y-5">
@@ -580,12 +589,39 @@ function EstimateTab({ project, onGoDeal }: { project: Project; onGoDeal: () => 
         activeId={activeRoomId}
         onChange={setActiveRoomId}
         rollups={rollups}
+        onQuickToggle={() => setQuickScan((v) => !v)}
       />
+
+      {/* Quick Scan + completion banner */}
+      <div className="flex items-center justify-between gap-3 -mt-1">
+        <button
+          onClick={() => setQuickScan((v) => !v)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold tracking-wide transition-all border ${
+            quickScan
+              ? "bg-[var(--amber)] text-white border-transparent shadow-card"
+              : "bg-card text-navy border-border hover:border-primary/50"
+          }`}
+          aria-pressed={quickScan}
+          title="Long-press or double-tap a room tab to toggle"
+        >
+          <Zap className="h-3.5 w-3.5" strokeWidth={2.5} />
+          {quickScan ? "Quick Scan ON" : "Quick Scan"}
+        </button>
+        {quickScan && (
+          <span className="text-[10px] text-muted-foreground">
+            All groups expanded · checkbox + name only
+          </span>
+        )}
+      </div>
+
+      {complete && celebrated && (
+        <CompletionBanner onExport={() => {}} />
+      )}
 
       {/* Groups for active room */}
       {activeRoom && (
         <div key={activeRoom.id} className="animate-fade-in">
-          <RoomGroups room={activeRoom} project={project} rollups={rollups} />
+          <RoomGroups room={activeRoom} project={project} rollups={rollups} quickScan={quickScan} />
         </div>
       )}
     </div>
@@ -634,13 +670,28 @@ function RoomTabs({
   activeId,
   onChange,
   rollups,
+  onQuickToggle,
 }: {
   rooms: Room[];
   activeId: string;
   onChange: (id: string) => void;
   rollups: ReturnType<typeof rollupProject>["rollups"];
+  onQuickToggle?: () => void;
 }) {
   const [adding, setAdding] = useState(false);
+  const lastTapRef = useRef<{ id: string; t: number }>({ id: "", t: 0 });
+  const lpTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lpFired = useRef(false);
+  const handleTap = (id: string) => {
+    const now = Date.now();
+    if (lastTapRef.current.id === id && now - lastTapRef.current.t < 320) {
+      onQuickToggle?.();
+      lastTapRef.current = { id: "", t: 0 };
+      return true;
+    }
+    lastTapRef.current = { id, t: now };
+    return false;
+  };
   return (
     <div className="-mx-4 px-4">
       <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 pt-0.5">
@@ -652,7 +703,21 @@ function RoomTabs({
           return (
             <button
               key={r.id}
-              onClick={() => onChange(r.id)}
+              onClick={() => {
+                if (lpFired.current) { lpFired.current = false; return; }
+                if (handleTap(r.id)) return;
+                onChange(r.id);
+              }}
+              onPointerDown={() => {
+                lpFired.current = false;
+                if (lpTimer.current) clearTimeout(lpTimer.current);
+                lpTimer.current = setTimeout(() => {
+                  lpFired.current = true;
+                  onQuickToggle?.();
+                }, 500);
+              }}
+              onPointerUp={() => { if (lpTimer.current) clearTimeout(lpTimer.current); }}
+              onPointerLeave={() => { if (lpTimer.current) clearTimeout(lpTimer.current); }}
               className={`shrink-0 px-4 py-2 text-sm font-semibold rounded-full transition-all flex items-center gap-1.5 ${
                 active
                   ? "bg-navy text-navy-foreground shadow-lift"
@@ -723,10 +788,12 @@ function RoomGroups({
   room,
   project,
   rollups,
+  quickScan,
 }: {
   room: Room;
   project: Project;
   rollups: ReturnType<typeof rollupProject>["rollups"];
+  quickScan?: boolean;
 }) {
   const tpl = ROOM_TEMPLATES[room.type];
   const removeRoom = useApp((s) => s.removeRoom);
@@ -779,7 +846,7 @@ function RoomGroups({
         const rollup = rollups.find(
           (r) => r.roomId === room.id && r.groupId === g.id,
         )!;
-        return <GroupCard key={g.id} room={room} groupId={g.id} groupName={g.name} rollup={rollup} project={project} itemIds={g.itemIds} />;
+        return <GroupCard key={g.id} room={room} groupId={g.id} groupName={g.name} rollup={rollup} project={project} itemIds={g.itemIds} quickScan={quickScan} />;
       })}
     </section>
   );
@@ -792,6 +859,7 @@ function GroupCard({
   rollup,
   project,
   itemIds,
+  quickScan,
 }: {
   room: Room;
   groupId: string;
@@ -799,8 +867,10 @@ function GroupCard({
   rollup: ReturnType<typeof rollupProject>["rollups"][number];
   project: Project;
   itemIds: string[];
+  quickScan?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [openSelf, setOpen] = useState(false);
+  const open = quickScan ? true : openSelf;
   const setNoAction = useApp((s) => s.setNoAction);
   const groupState = project.state[room.id]?.[groupId];
   const visibleCount =
@@ -813,7 +883,7 @@ function GroupCard({
       }`}
     >
       <button
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => !quickScan && setOpen((v) => !v)}
         className="w-full px-4 py-3 flex items-center gap-3 text-left"
       >
         <div className="flex-1 min-w-0">
@@ -837,13 +907,15 @@ function GroupCard({
       </button>
       {open && (
         <div className="border-t">
-          <label className="flex items-center justify-between px-4 py-2.5 text-sm">
-            <span className="text-muted-foreground">No action needed</span>
-            <Toggle
-              checked={!!groupState?.noAction}
-              onChange={(v) => setNoAction(room.id, groupId, v)}
-            />
-          </label>
+          {!quickScan && (
+            <label className="flex items-center justify-between px-4 py-2.5 text-sm">
+              <span className="text-muted-foreground">No action needed</span>
+              <Toggle
+                checked={!!groupState?.noAction}
+                onChange={(v) => setNoAction(room.id, groupId, v)}
+              />
+            </label>
+          )}
           <div className="divide-y">
             {itemIds
               .filter((id) => !groupState?.deletedItems?.includes(id))
@@ -853,6 +925,7 @@ function GroupCard({
                   room={room}
                   groupId={groupId}
                   itemId={id}
+                  compact={quickScan}
                 />
               ))}
             {(groupState?.customItems ?? []).map((ci) => (
@@ -862,10 +935,11 @@ function GroupCard({
                 groupId={groupId}
                 itemId={ci.id}
                 custom={ci}
+                compact={quickScan}
               />
             ))}
           </div>
-          <AddCustomItem room={room} groupId={groupId} />
+          {!quickScan && <AddCustomItem room={room} groupId={groupId} />}
         </div>
       )}
     </div>
@@ -896,11 +970,13 @@ function LineItemRow({
   groupId,
   itemId,
   custom,
+  compact,
 }: {
   room: Room;
   groupId: string;
   itemId: string;
   custom?: { id: string; name: string; cost: number; unit: string };
+  compact?: boolean;
 }) {
   const project = useApp((s) => (s.currentId ? s.projects[s.currentId] : null));
   const globals = useApp((s) => s.globalPrices);
@@ -934,7 +1010,7 @@ function LineItemRow({
     <div
       className={`px-4 py-3 border-l-[3px] transition-colors duration-300 ${
         checked ? "border-primary bg-primary/[0.04]" : "border-transparent"
-      }`}
+      } ${compact ? "py-2" : ""}`}
     >
       <div className="flex items-start gap-3">
         <button
@@ -948,6 +1024,18 @@ function LineItemRow({
             <Check className="h-4 w-4 text-primary-foreground animate-check-pop" strokeWidth={3.5} />
           )}
         </button>
+        {compact ? (
+          <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
+            <div className="text-[14px] text-navy font-medium leading-tight truncate">
+              {item.name}
+            </div>
+            {checked && (
+              <span className="text-[11px] tabular-nums text-muted-foreground shrink-0">
+                {fmtMoney(total)}
+              </span>
+            )}
+          </div>
+        ) : (
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2">
             <div className="text-[14px] text-navy font-medium leading-tight">
@@ -1028,6 +1116,7 @@ function LineItemRow({
             </div>
           )}
         </div>
+        )}
         <button
           onClick={() => {
             if (isCustom) removeCustomItem(room.id, groupId, itemId);
@@ -2173,6 +2262,56 @@ function SerialScanner({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+function CompletionBanner({ onExport }: { onExport: () => void }) {
+  const colors = ["#2563EB", "#1E3A5F", "#F59E0B", "#10B981", "#EF4444"];
+  const pieces = useMemo(
+    () =>
+      Array.from({ length: 36 }, (_, i) => ({
+        left: Math.random() * 100,
+        cx: (Math.random() - 0.5) * 240 + "px",
+        cr: Math.floor(Math.random() * 1080 + 360) + "deg",
+        delay: Math.random() * 0.6,
+        dur: 2.2 + Math.random() * 1.6,
+        color: colors[i % colors.length],
+        w: 6 + Math.random() * 6,
+        h: 10 + Math.random() * 8,
+      })),
+    [],
+  );
+  return (
+    <div className="relative rounded-2xl p-5 grad-hero text-navy-foreground shadow-lift overflow-hidden animate-scale-in">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        {pieces.map((p, i) => (
+          <span
+            key={i}
+            className="confetti-piece"
+            style={{
+              left: `${p.left}%`,
+              width: p.w,
+              height: p.h,
+              background: p.color,
+              animationDelay: `${p.delay}s`,
+              animationDuration: `${p.dur}s`,
+              ["--cx" as string]: p.cx,
+              ["--cr" as string]: p.cr,
+            }}
+          />
+        ))}
+      </div>
+      <div className="relative flex items-center gap-3">
+        <div className="h-12 w-12 rounded-2xl bg-[var(--amber)] grid place-items-center shadow-card shrink-0">
+          <PartyPopper className="h-6 w-6 text-white" strokeWidth={2.2} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-base font-black tracking-tight">Walkthrough complete!</div>
+          <div className="text-xs opacity-90 mt-0.5">
+            Tap <span className="font-bold">Export</span> to download your estimate.
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
