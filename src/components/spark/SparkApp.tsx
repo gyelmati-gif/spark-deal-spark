@@ -970,11 +970,13 @@ function LineItemRow({
   groupId,
   itemId,
   custom,
+  compact,
 }: {
   room: Room;
   groupId: string;
   itemId: string;
   custom?: { id: string; name: string; cost: number; unit: string };
+  compact?: boolean;
 }) {
   const project = useApp((s) => (s.currentId ? s.projects[s.currentId] : null));
   const globals = useApp((s) => s.globalPrices);
@@ -1008,7 +1010,7 @@ function LineItemRow({
     <div
       className={`px-4 py-3 border-l-[3px] transition-colors duration-300 ${
         checked ? "border-primary bg-primary/[0.04]" : "border-transparent"
-      }`}
+      } ${compact ? "py-2" : ""}`}
     >
       <div className="flex items-start gap-3">
         <button
@@ -1022,6 +1024,18 @@ function LineItemRow({
             <Check className="h-4 w-4 text-primary-foreground animate-check-pop" strokeWidth={3.5} />
           )}
         </button>
+        {compact ? (
+          <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
+            <div className="text-[14px] text-navy font-medium leading-tight truncate">
+              {item.name}
+            </div>
+            {checked && (
+              <span className="text-[11px] tabular-nums text-muted-foreground shrink-0">
+                {fmtMoney(total)}
+              </span>
+            )}
+          </div>
+        ) : (
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2">
             <div className="text-[14px] text-navy font-medium leading-tight">
