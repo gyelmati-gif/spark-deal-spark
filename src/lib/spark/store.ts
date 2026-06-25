@@ -156,6 +156,8 @@ export const useApp = create<AppState>()(
       projects: {},
       currentId: null,
       globalPrices: {},
+      hasOnboarded: false,
+      setOnboarded: (v) => set({ hasOnboarded: v }),
 
       createProject: (name) => {
         const p = makeProject(name || "New Walkthrough");
