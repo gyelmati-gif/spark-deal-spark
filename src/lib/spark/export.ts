@@ -6,7 +6,8 @@ import { rollupProject, fmtMoney2 } from "./calc";
 export async function exportProjectZip(
   project: Project,
   globals: Record<string, number>,
-) {
+  options: { returnBlob?: boolean } = {},
+): Promise<Blob | void> {
   const { rollups, total } = rollupProject(project, globals);
   const wb = XLSX.utils.book_new();
 
@@ -99,6 +100,7 @@ export async function exportProjectZip(
   zip.file("summary.txt", txt);
 
   const blob = await zip.generateAsync({ type: "blob" });
+  if (options.returnBlob) return blob;
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
