@@ -27,7 +27,30 @@ import {
   ClipboardList,
   FolderPlus,
   ChevronRight,
+  GripVertical,
+  RefreshCw,
+  AlertTriangle,
+  Loader2,
+  ChevronLeft,
 } from "lucide-react";
+import {
+  DndContext,
+  PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  useSortable,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 type Tab = "estimate" | "deal" | "export" | "photos" | "review";
 
